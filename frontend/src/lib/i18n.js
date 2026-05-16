@@ -91,17 +91,42 @@ export const translations = {
     'intel.col.desc':   'Descripción',
     'intel.col.loc':    'Ubicación',
     'intel.col.risk':   'Riesgo',
-    'intel.noMatch':    'No hay incidentes que coincidan con los filtros',
+    'intel.noMatch':    'No se encontraron incidentes con estos filtros',
     'intel.count':      'incidentes',
     'intel.clusters':   'Grupos Activos',
     'intel.spikes':     'Detección de Picos',
     'intel.last':       'últimas',
 
     // Alerts
-    'alerts.title':    'Alertas',
-    'alerts.subtitle': 'Detecciones de alta confianza que requieren atención inmediata',
-    'alerts.active':   'activas',
-    'alerts.view':     'Ver Detalles',
+    'alerts.title':         'Alertas',
+    'alerts.subtitle':      'Detecciones de alta confianza que requieren atención inmediata',
+    'alerts.active':        'activas',
+    'alerts.view':          'Ver detalles',
+    'alerts.filterAll':     'Todas',
+    'alerts.filterCritical':'Solo Críticas',
+    'alerts.filterHigh':    'Solo Altas',
+    'alerts.empty':         'No hay alertas activas',
+    'alerts.critical':      'CRÍTICA',
+    'alerts.entities':      'Entidades',
+    'alerts.campaign':      'Campaña',
+
+    // Dashboard
+    'dash.noData': 'Sin datos',
+
+    // Intel additions
+    'intel.search':           'Buscar amenazas...',
+    'intel.export':           'Exportar CSV',
+    'intel.page':             'Página',
+    'intel.of':               'de',
+    'intel.detail.entities':  'Entidades',
+    'intel.detail.emotional': 'Vectores Emocionales',
+    'intel.detail.campaign':  'Campaña',
+    'intel.detail.actions':   'Acciones Recomendadas',
+    'intel.detail.noSelect':  'Selecciona un incidente para ver detalles',
+
+    // Scanner additions
+    'scanner.savedToDB':     'Guardado en base de datos',
+    'scanner.regionUnknown': 'Región no detectada',
   },
 
   en: {
@@ -203,10 +228,36 @@ export const translations = {
     'intel.last':       'last',
 
     // Alerts
-    'alerts.title':    'Alerts',
-    'alerts.subtitle': 'High-confidence detections requiring immediate attention',
-    'alerts.active':   'active',
-    'alerts.view':     'View Details',
+    'alerts.title':         'Alerts',
+    'alerts.subtitle':      'High-confidence detections requiring immediate attention',
+    'alerts.active':        'active',
+    'alerts.view':          'View details',
+    'alerts.filterAll':     'All',
+    'alerts.filterCritical':'Critical Only',
+    'alerts.filterHigh':    'High Only',
+    'alerts.empty':         'No active alerts',
+    'alerts.critical':      'CRITICAL',
+    'alerts.entities':      'Entities',
+    'alerts.campaign':      'Campaign',
+
+    // Dashboard
+    'dash.noData': 'No data',
+
+    // Intel additions
+    'intel.search':           'Search threats...',
+    'intel.export':           'Export CSV',
+    'intel.page':             'Page',
+    'intel.of':               'of',
+    'intel.detail.entities':  'Entities',
+    'intel.detail.emotional': 'Emotional Vectors',
+    'intel.detail.campaign':  'Campaign',
+    'intel.detail.actions':   'Recommended Actions',
+    'intel.detail.noSelect':  'Select an incident to view details',
+    'intel.noMatch':          'No incidents found with these filters',
+
+    // Scanner additions
+    'scanner.savedToDB':     'Saved to database',
+    'scanner.regionUnknown': 'Region not detected',
   },
 }
 

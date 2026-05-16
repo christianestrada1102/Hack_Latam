@@ -14,33 +14,19 @@ export default function Header() {
         <span className="text-sm text-neutral-300 font-medium">{title}</span>
       </div>
 
-      <div className="flex items-center gap-4">
-        {/* Language toggle */}
-        <button
-          onClick={toggle}
-          className="flex items-center gap-1 font-mono text-[11px] tracking-widest"
-          aria-label="Toggle language"
-        >
-          <span className={lang === 'es' ? 'text-amber-400 font-semibold' : 'text-neutral-600 hover:text-neutral-400'}>
-            ES
-          </span>
-          <span className="text-neutral-700">|</span>
-          <span className={lang === 'en' ? 'text-amber-400 font-semibold' : 'text-neutral-600 hover:text-neutral-400'}>
-            EN
-          </span>
-        </button>
-
-        {/* Live indicator */}
-        <div className="flex items-center gap-2">
-          <span className="relative flex h-2 w-2">
-            <span className="live-pulse absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" />
-          </span>
-          <span className="text-[11px] font-mono text-amber-400 uppercase tracking-widest">
-            Live
-          </span>
-        </div>
-      </div>
+      <button
+        onClick={toggle}
+        className="flex items-center gap-1 font-mono text-[11px] tracking-widest"
+        aria-label="Toggle language"
+      >
+        <span className={lang === 'es' ? 'text-amber-400 font-semibold' : 'text-neutral-600 hover:text-neutral-400'}>
+          ES
+        </span>
+        <span className="text-neutral-700">|</span>
+        <span className={lang === 'en' ? 'text-amber-400 font-semibold' : 'text-neutral-600 hover:text-neutral-400'}>
+          EN
+        </span>
+      </button>
     </header>
   )
 }

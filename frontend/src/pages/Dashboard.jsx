@@ -1,46 +1,57 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import 'leaflet/dist/leaflet.css'
 import { MapContainer, TileLayer, CircleMarker, Tooltip } from 'react-leaflet'
 import { Shield, Activity, AlertTriangle, TrendingUp } from 'lucide-react'
-import { getStats, getFeed } from '../lib/api'
+import { getStats, getFeed, getCampaigns } from '../lib/api'
 import { useLang } from '../lib/LanguageContext'
 
-// Metric definitions — i18nKey drives the label, seedValue is the pre-API placeholder
 const METRIC_DEFS = [
-  { id: 'threats24h', i18nKey: 'dash.threats24h', statsField: 'total_24h',        seedValue: '142',  icon: Shield,        delta: '+12',  up: true  },
-  { id: 'campaigns',  i18nKey: 'dash.campaigns',  statsField: 'active_campaigns',  seedValue: '12',   icon: Activity,      delta: '+3',   up: true  },
-  { id: 'regional',   i18nKey: 'dash.regional',   statsField: 'regional_alerts',   seedValue: '8',    icon: AlertTriangle, delta: '-1',   up: false },
-  { id: 'avgRisk',    i18nKey: 'dash.avgRisk',    statsField: 'avg_risk_score',    seedValue: '67.3', icon: TrendingUp,    delta: '+2.1', up: true  },
+  { id: 'threats24h', i18nKey: 'dash.threats24h', statsField: 'total_24h',       icon: Shield        },
+  { id: 'campaigns',  i18nKey: 'dash.campaigns',  statsField: 'active_campaigns', icon: Activity      },
+  { id: 'regional',   i18nKey: 'dash.regional',   statsField: 'regional_alerts',  icon: AlertTriangle },
+  { id: 'avgRisk',    i18nKey: 'dash.avgRisk',     statsField: 'avg_risk_score',   icon: TrendingUp    },
 ]
 
-const SEED_INCIDENTS = [
-  { id: 1, score: 92, title: 'WhatsApp Empleo Falso',   location: 'Chihuahua', ago: '2min ago',  type: 'smishing'  },
-  { id: 2, score: 88, title: 'BBVA Clone Phishing',     location: 'CDMX',      ago: '5min ago',  type: 'phishing'  },
-  { id: 3, score: 78, title: 'CFE Fraude SMS',          location: 'Chihuahua', ago: '12min ago', type: 'smishing'  },
-  { id: 4, score: 71, title: 'Suplantación SAT',        location: 'Monterrey', ago: '18min ago', type: 'phishing'  },
-  { id: 5, score: 65, title: 'Inversión Falsa Ponzi',   location: 'Juárez',    ago: '31min ago', type: 'scam'      },
-  { id: 6, score: 45, title: 'Tienda Falsa Facebook',   location: 'Bogotá',    ago: '47min ago', type: 'scam'      },
-]
+const GEOCODE = {
+  'chihuahua':     { lat: 28.6353,  lng: -106.0889 },
+  'ciudad juárez': { lat: 31.6904,  lng: -106.4245 },
+  'juárez':        { lat: 31.6904,  lng: -106.4245 },
+  'cdmx':          { lat: 19.4326,  lng: -99.1332  },
+  'monterrey':     { lat: 25.6866,  lng: -100.3161 },
+  'guadalajara':   { lat: 20.6597,  lng: -103.3496 },
+  'bogotá':        { lat:  4.7110,  lng: -74.0721  },
+  'lima':          { lat: -12.0464, lng: -77.0428  },
+  'buenos aires':  { lat: -34.6037, lng: -58.3816  },
+  'são paulo':     { lat: -23.5505, lng: -46.6333  },
+}
 
-const MAP_POINTS = [
-  { city: 'Chihuahua',      lat: 28.6353,  lng: -106.0889, incidents: 24, r: 16 },
-  { city: 'Ciudad Juárez',  lat: 31.6904,  lng: -106.4245, incidents: 18, r: 13 },
-  { city: 'CDMX',           lat: 19.4326,  lng: -99.1332,  incidents: 31, r: 19 },
-  { city: 'Monterrey',      lat: 25.6866,  lng: -100.3161, incidents: 15, r: 12 },
-  { city: 'Bogotá',         lat:  4.7110,  lng: -74.0721,  incidents: 12, r: 11 },
-  { city: 'São Paulo',      lat: -23.5505, lng: -46.6333,  incidents: 22, r: 15 },
-  { city: 'Buenos Aires',   lat: -34.6037, lng: -58.3816,  incidents:  9, r:  9 },
-  { city: 'Lima',           lat: -12.0464, lng: -77.0428,  incidents: 11, r: 10 },
-  { city: 'Santiago',       lat: -33.4569, lng: -70.6483,  incidents:  7, r:  8 },
-  { city: 'Guadalajara',    lat: 20.6597,  lng: -103.3496, incidents: 14, r: 12 },
-]
+const CAMPAIGN_NAMES = {
+  'camp-bbva-fake-001':       'BBVA Fake Login',
+  'camp-empleo-remoto-001':   'Empleo Remoto',
+  'camp-cfe-sms-001':         'CFE Adeudo SMS',
+  'camp-inversion-ponzi-001': 'Inversión Ponzi',
+}
 
-const CAMPAIGNS = [
-  { name: 'BBVA Fake Login',       delta: '+42%', pct: 84 },
-  { name: 'Empleo Remoto Falso',   delta: '+38%', pct: 76 },
-  { name: 'CFE Adeudo SMS',        delta: '+28%', pct: 56 },
-  { name: 'Inversión Garantizada', delta: '+15%', pct: 30 },
-]
+function geocodeRegion(region) {
+  if (!region) return null
+  const city = region.split(',')[0].trim().toLowerCase()
+  return GEOCODE[city] ?? null
+}
+
+function buildMapPoints(incidents) {
+  const cityMap = {}
+  for (const inc of incidents) {
+    const geo = geocodeRegion(inc.region)
+    if (!geo) continue
+    const city = inc.region.split(',')[0].trim()
+    if (!cityMap[city]) cityMap[city] = { ...geo, city, incidents: 0 }
+    cityMap[city].incidents++
+  }
+  return Object.values(cityMap).map((p) => ({
+    ...p,
+    r: Math.max(6, Math.min(20, 6 + Math.sqrt(p.incidents) * 3)),
+  }))
+}
 
 function scoreColor(s) {
   if (s >= 80) return '#ef4444'
@@ -55,8 +66,7 @@ function relativeTime(isoString) {
   return `${Math.floor(diff / 3600)}h ago`
 }
 
-function MetricCard({ label, value, icon: Icon, delta, up }) {
-  const { t } = useLang()
+function MetricCard({ label, value, icon: Icon }) {
   return (
     <div className="card-base p-4">
       <div className="flex items-start justify-between mb-3">
@@ -66,9 +76,6 @@ function MetricCard({ label, value, icon: Icon, delta, up }) {
         <Icon size={13} className="text-neutral-700 shrink-0 mt-0.5" strokeWidth={1.5} />
       </div>
       <p className="text-[26px] font-semibold text-neutral-100 font-mono leading-none">{value}</p>
-      <p className={`text-[11px] font-mono mt-2 ${up ? 'text-amber-400' : 'text-emerald-500'}`}>
-        {delta} {t('dash.vsYesterday')}
-      </p>
     </div>
   )
 }
@@ -93,12 +100,12 @@ function IncidentRow({ score, title, location, ago, type }) {
   )
 }
 
-function CampaignBar({ name, delta, pct }) {
+function CampaignBar({ name, count, pct }) {
   return (
     <div className="flex-1 min-w-0">
       <div className="flex items-center justify-between mb-1.5 gap-2">
         <span className="text-[11px] text-neutral-300 truncate">{name}</span>
-        <span className="text-[11px] font-mono text-amber-400 shrink-0">{delta}</span>
+        <span className="text-[11px] font-mono text-amber-400 shrink-0">{count}</span>
       </div>
       <div className="h-[3px] bg-[#222] rounded-full overflow-hidden">
         <div className="h-full bg-amber-400 rounded-full" style={{ width: `${pct}%` }} />
@@ -109,57 +116,70 @@ function CampaignBar({ name, delta, pct }) {
 
 export default function Dashboard() {
   const { t } = useLang()
-  const [apiStats, setApiStats]   = useState(null)
-  const [incidents, setIncidents] = useState(SEED_INCIDENTS)
-  const [loading, setLoading]     = useState(true)
+  const [apiStats, setApiStats]       = useState(null)
+  const [feedItems, setFeedItems]     = useState([])
+  const [allIncidents, setAllIncidents] = useState([])
+  const [campaigns, setCampaigns]     = useState([])
+  const [loading, setLoading]         = useState(true)
 
   useEffect(() => {
     let cancelled = false
 
-    async function load() {
-      const [stats, feed] = await Promise.all([getStats(), getFeed({ limit: 6 })])
+    const load = async () => {
+      const [stats, feed, camps] = await Promise.all([
+        getStats(),
+        getFeed({ limit: 10 }),
+        getCampaigns(),
+      ])
       if (cancelled) return
 
       if (stats) setApiStats(stats)
 
       if (feed && feed.length > 0) {
-        setIncidents(
+        setFeedItems(
           feed.map((inc) => ({
             id:       inc.id,
             score:    inc.risk_score,
-            title:    `${inc.threat_type.toUpperCase()} · ${inc.region}`,
+            title:    inc.entities?.keywords?.length
+                        ? inc.entities.keywords.slice(0, 2).join(' · ')
+                        : `${inc.threat_type.toUpperCase()} · ${inc.region ?? '—'}`,
             location: inc.region?.split(',')[0] ?? '—',
             ago:      relativeTime(inc.created_at),
             type:     inc.threat_type,
           }))
         )
+        setAllIncidents(feed)
       }
 
+      if (camps && camps.length > 0) setCampaigns(camps)
       setLoading(false)
     }
 
     load()
-    return () => { cancelled = true }
+    const interval = setInterval(load, 30000)
+    return () => { cancelled = true; clearInterval(interval) }
   }, [])
 
-  const metrics = METRIC_DEFS.map((def) => {
-    let value = def.seedValue
-    if (!loading && apiStats) {
-      value = def.id === 'avgRisk'
-        ? (apiStats[def.statsField] ?? 0).toFixed(1)
-        : String(apiStats[def.statsField] ?? def.seedValue)
-    }
-    return {
-      id:    def.id,
-      label: t(def.i18nKey),
-      value: loading ? '…' : value,
-      icon:  def.icon,
-      delta: def.delta,
-      up:    def.up,
-    }
-  })
+  const metrics = METRIC_DEFS.map((def) => ({
+    id:    def.id,
+    label: t(def.i18nKey),
+    value: loading
+      ? '…'
+      : def.id === 'avgRisk'
+        ? (apiStats?.[def.statsField] ?? 0).toFixed(1)
+        : String(apiStats?.[def.statsField] ?? '—'),
+    icon: def.icon,
+  }))
 
-  const totalIncidents = MAP_POINTS.reduce((a, p) => a + p.incidents, 0)
+  const mapPoints = useMemo(() => buildMapPoints(allIncidents), [allIncidents])
+  const totalIncidents = mapPoints.reduce((a, p) => a + p.incidents, 0)
+
+  const maxCount = campaigns.reduce((m, c) => Math.max(m, c.count), 1)
+  const topCampaigns = campaigns.slice(0, 4).map((c) => ({
+    name:  CAMPAIGN_NAMES[c.campaign_id] ?? c.campaign_id,
+    count: `${c.count} casos`,
+    pct:   Math.round((c.count / maxCount) * 100),
+  }))
 
   return (
     <div className="p-5 flex flex-col gap-3">
@@ -181,9 +201,15 @@ export default function Dashboard() {
               {t('dash.live')}
             </span>
           </div>
-          <div className="flex flex-col gap-1.5">
-            {incidents.map((inc) => <IncidentRow key={inc.id} {...inc} />)}
-          </div>
+          {feedItems.length === 0 ? (
+            <div className="flex items-center justify-center h-32 text-[12px] text-neutral-600">
+              {loading ? '…' : t('dash.noData')}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {feedItems.map((inc) => <IncidentRow key={inc.id} {...inc} />)}
+            </div>
+          )}
         </div>
 
         {/* Map */}
@@ -206,7 +232,7 @@ export default function Dashboard() {
               style={{ height: '100%', width: '100%', background: '#0d0d0d' }}
             >
               <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
-              {MAP_POINTS.map((p) => (
+              {mapPoints.map((p) => (
                 <CircleMarker
                   key={p.city}
                   center={[p.lat, p.lng]}
@@ -236,9 +262,13 @@ export default function Dashboard() {
         <p className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono mb-3">
           {t('dash.trending')}
         </p>
-        <div className="flex gap-5">
-          {CAMPAIGNS.map((c) => <CampaignBar key={c.name} {...c} />)}
-        </div>
+        {topCampaigns.length === 0 ? (
+          <p className="text-[11px] text-neutral-600">{loading ? '…' : t('dash.noData')}</p>
+        ) : (
+          <div className="flex gap-5">
+            {topCampaigns.map((c) => <CampaignBar key={c.name} {...c} />)}
+          </div>
+        )}
       </div>
     </div>
   )
