@@ -3,7 +3,7 @@ AI model integrations via OpenRouter for threat analysis.
 
 Models used:
   mistralai/pixtral-12b            — vision analysis for images
-  mistralai/mistral-small-3.2-24b  — text/URL threat classification
+  mistralai/mistral-small-3.2-24b-instruct-2506  — text/URL threat classification
   anthropic/claude-haiku-4-5       — emotional pressure detection
 
 Audio transcription uses the Mistral API directly (only provider
@@ -20,7 +20,7 @@ _OPENROUTER_BASE = "https://openrouter.ai/api/v1"
 _MISTRAL_BASE    = "https://api.mistral.ai/v1"
 
 _PIXTRAL       = "mistralai/pixtral-12b"
-_MISTRAL_SMALL = "mistralai/mistral-small-3.2-24b"
+_MISTRAL_SMALL = "mistralai/mistral-small-3.2-24b-instruct-2506"
 _HAIKU         = "anthropic/claude-haiku-4-5"
 
 _ANALYSIS_SCHEMA = """\
@@ -159,7 +159,7 @@ async def analyze_text_threat(text: str) -> dict:
             "Return ONLY valid JSON — no markdown, no extra text:\n"
             + _ANALYSIS_SCHEMA
             + "\n\nContent to analyze:\n"
-            + text[:6000]
+            + str(text)[:6000]
         ),
     }]
 
@@ -191,7 +191,7 @@ async def detect_emotional_scores(content: str) -> dict:
             "Return ONLY valid JSON — no markdown, no extra text:\n"
             + _EMOTIONAL_SCHEMA
             + "\n\nContent:\n"
-            + content[:4000]
+            + str(content)[:4000]
         ),
     }]
 
