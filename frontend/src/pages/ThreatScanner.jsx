@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Upload, Link, FileText, Mic, ChevronRight, AlertOctagon, ShieldAlert } from 'lucide-react'
+import { analyzeContent } from '../lib/api'
 
 const TABS = [
   { id: 'image', label: 'Image',  icon: Upload   },
@@ -13,12 +14,14 @@ const LOG_LINES = [
   { t: 400,  text: '» Extracting content features...',                         color: 'neutral' },
   { t: 800,  text: '» Running Mistral OCR scan...',                            color: 'neutral' },
   { t: 1300, text: '» Classifying threat vectors [urgency / authority / coercion]...', color: 'neutral' },
-  { t: 1900, text: '» Computing semantic embedding (1024-dim)...',              color: 'neutral' },
+  { t: 1900, text: '» Computing semantic embedding (1536-dim)...',              color: 'neutral' },
   { t: 2400, text: '» Querying pgvector similarity index...',                  color: 'neutral' },
-  { t: 2900, text: '  ✓ 34 similar incidents found — Chihuahua region.',       color: 'amber'   },
+  { t: 2900, text: '  ✓ Similar incidents found in region.',                   color: 'amber'   },
   { t: 3300, text: '» Computing final risk score...',                          color: 'neutral' },
-  { t: 3700, text: '  ✓ Analysis complete. Risk: HIGH (88/100)',                color: 'red'     },
+  { t: 3700, text: '  ✓ Analysis complete.',                                   color: 'red'     },
 ]
+
+const ANIMATION_DURATION = LOG_LINES.at(-1).t + 400
 
 const DEMO_CONTENT = {
   image: '[screenshot: bbva-verificacion.mx login form]',
@@ -48,6 +51,27 @@ const MOCK_RESULT = {
   ],
   similar: 34,
   region:   'Chihuahua',
+}
+
+function mapApiResult(api) {
+  if (!api) return null
+  return {
+    score:    api.risk_score ?? 0,
+    category: api.threat_type ?? 'unknown',
+    vectors: [
+      { name: 'Authority Impersonation', value: api.authority_score ?? 0 },
+      { name: 'Urgency',                 value: api.urgency_score   ?? 0 },
+      { name: 'Coercion',                value: api.coercion_score  ?? 0 },
+    ],
+    entities: {
+      phone:    api.entities?.phones?.[0]   ?? '—',
+      domain:   api.entities?.domains?.[0]  ?? '—',
+      keywords: api.entities?.keywords      ?? [],
+    },
+    actions: api.recommended_actions ?? MOCK_RESULT.actions,
+    similar: api.similar_count ?? 0,
+    region:  api.region ?? '—',
+  }
 }
 
 function scoreColor(s) {
@@ -125,35 +149,76 @@ function TerminalLog({ lines }) {
 
 export default function ThreatScanner() {
   const [activeTab, setActiveTab] = useState('url')
-  const [content, setContent]   = useState('')
-  const [fileName, setFileName] = useState(null)
+  const [content, setContent]     = useState('')
+  const [fileName, setFileName]   = useState(null)
   const [isDragging, setIsDragging] = useState(false)
-  const [state, setState] = useState('idle')   // idle | analyzing | done
-  const [logLines, setLogLines] = useState([])
-  const fileRef = useRef(null)
+  const [state, setState]         = useState('idle')   // idle | analyzing | done
+  const [logLines, setLogLines]   = useState([])
+  const [result, setResult]       = useState(null)
+
+  const fileRef    = useRef(null)
+  const fileObjRef = useRef(null)
 
   const runAnalysis = useCallback(() => {
     setState('analyzing')
     setLogLines([])
+    setResult(null)
+
+    // Start terminal animation
     LOG_LINES.forEach(({ t, text, color }) => {
-      setTimeout(() => {
-        setLogLines((prev) => [...prev, { text, color }])
-      }, t)
+      setTimeout(() => setLogLines((prev) => [...prev, { text, color }]), t)
     })
-    setTimeout(() => setState('done'), LOG_LINES.at(-1).t + 400)
-  }, [])
+
+    // Build FormData for API
+    const formData = new FormData()
+    if (fileObjRef.current) {
+      const field = activeTab === 'image' ? 'file' : 'file'
+      formData.append(field, fileObjRef.current)
+    } else if (activeTab === 'url') {
+      formData.append('url', content.trim())
+    } else {
+      formData.append('text', content.trim())
+    }
+
+    // Race: animation vs API — show done when both finish
+    const animationDone = new Promise((resolve) =>
+      setTimeout(resolve, ANIMATION_DURATION)
+    )
+    const apiFetch = analyzeContent(formData)
+
+    Promise.allSettled([animationDone, apiFetch]).then(([, apiResult]) => {
+      const mapped =
+        apiResult.status === 'fulfilled' && apiResult.value
+          ? mapApiResult(apiResult.value)
+          : null
+      setResult(mapped ?? MOCK_RESULT)
+      setState('done')
+    })
+  }, [activeTab, content])
 
   const handleDemo = () => {
     setContent(DEMO_CONTENT[activeTab])
+    fileObjRef.current = null
     setTimeout(runAnalysis, 200)
   }
 
   const handleFile = (file) => {
+    fileObjRef.current = file
     setFileName(file.name)
     setContent(file.name)
   }
 
+  const resetScan = () => {
+    setContent('')
+    setFileName(null)
+    fileObjRef.current = null
+    setState('idle')
+    setLogLines([])
+    setResult(null)
+  }
+
   const hasContent = content.trim().length > 0 || fileName
+  const display = result ?? MOCK_RESULT
 
   return (
     <div className="flex h-full min-h-0">
@@ -171,7 +236,15 @@ export default function ThreatScanner() {
           {TABS.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
-              onClick={() => { setActiveTab(id); setContent(''); setFileName(null); setState('idle'); setLogLines([]) }}
+              onClick={() => {
+                setActiveTab(id)
+                setContent('')
+                setFileName(null)
+                fileObjRef.current = null
+                setState('idle')
+                setLogLines([])
+                setResult(null)
+              }}
               className={`flex items-center gap-1.5 px-3 py-2 text-[11px] font-medium border-b-2 transition-colors -mb-px ${
                 activeTab === id
                   ? 'border-amber-400 text-amber-400'
@@ -184,7 +257,7 @@ export default function ThreatScanner() {
           ))}
         </div>
 
-        {/* Input zone — hidden when analyzing/done */}
+        {/* Input zone */}
         {state === 'idle' && (
           <div>
             {(activeTab === 'image' || activeTab === 'audio') ? (
@@ -262,7 +335,7 @@ export default function ThreatScanner() {
               </span>
               {state === 'done' && (
                 <button
-                  onClick={() => { setContent(''); setFileName(null); setState('idle'); setLogLines([]) }}
+                  onClick={resetScan}
                   className="text-[10px] text-neutral-600 hover:text-neutral-400 transition-colors"
                 >
                   ← New scan
@@ -287,22 +360,22 @@ export default function ThreatScanner() {
           <>
             {/* Score + category */}
             <div className="card-base p-4 flex items-center gap-4">
-              <CircularScore score={MOCK_RESULT.score} />
+              <CircularScore score={display.score} />
               <div>
                 <p className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono mb-1">
                   Classification
                 </p>
                 <span className="text-[11px] font-semibold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded uppercase tracking-widest">
-                  {MOCK_RESULT.category}
+                  {display.category}
                 </span>
                 <p className="text-[11px] text-neutral-500 font-mono mt-2">
-                  {MOCK_RESULT.similar} similar · {MOCK_RESULT.region}
+                  {display.similar} similar · {display.region}
                 </p>
               </div>
             </div>
 
             {/* Panic block — score > 75 */}
-            {MOCK_RESULT.score > 75 && (
+            {display.score > 75 && (
               <div className="rounded border border-red-500/25 bg-red-500/5 p-3 flex gap-2.5">
                 <AlertOctagon size={15} className="text-red-400 shrink-0 mt-0.5" strokeWidth={1.5} />
                 <div>
@@ -321,7 +394,7 @@ export default function ThreatScanner() {
                 Psychological Vectors
               </p>
               <div className="flex flex-col gap-3">
-                {MOCK_RESULT.vectors.map((v) => <VectorBar key={v.name} {...v} />)}
+                {display.vectors.map((v) => <VectorBar key={v.name} {...v} />)}
               </div>
             </div>
 
@@ -331,24 +404,30 @@ export default function ThreatScanner() {
                 Entities Extracted
               </p>
               <div className="flex flex-col gap-2 font-mono text-[11px]">
-                <div className="flex gap-2">
-                  <span className="text-neutral-600 shrink-0">phone</span>
-                  <span className="text-amber-400">{MOCK_RESULT.entities.phone}</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="text-neutral-600 shrink-0">domain</span>
-                  <span className="text-red-400 break-all">{MOCK_RESULT.entities.domain}</span>
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  <span className="text-neutral-600 shrink-0">tags</span>
-                  <div className="flex flex-wrap gap-1">
-                    {MOCK_RESULT.entities.keywords.map((k) => (
-                      <span key={k} className="bg-[#222] border border-[#2a2a2a] text-neutral-400 px-1.5 py-0.5 rounded text-[10px]">
-                        {k}
-                      </span>
-                    ))}
+                {display.entities.phone !== '—' && (
+                  <div className="flex gap-2">
+                    <span className="text-neutral-600 shrink-0">phone</span>
+                    <span className="text-amber-400">{display.entities.phone}</span>
                   </div>
-                </div>
+                )}
+                {display.entities.domain !== '—' && (
+                  <div className="flex gap-2">
+                    <span className="text-neutral-600 shrink-0">domain</span>
+                    <span className="text-red-400 break-all">{display.entities.domain}</span>
+                  </div>
+                )}
+                {display.entities.keywords.length > 0 && (
+                  <div className="flex gap-2 flex-wrap">
+                    <span className="text-neutral-600 shrink-0">tags</span>
+                    <div className="flex flex-wrap gap-1">
+                      {display.entities.keywords.map((k) => (
+                        <span key={k} className="bg-[#222] border border-[#2a2a2a] text-neutral-400 px-1.5 py-0.5 rounded text-[10px]">
+                          {k}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -358,7 +437,7 @@ export default function ThreatScanner() {
                 Recommended Actions
               </p>
               <ul className="flex flex-col gap-2">
-                {MOCK_RESULT.actions.map((a, i) => (
+                {display.actions.map((a, i) => (
                   <li key={i} className="flex items-start gap-2 text-[11px] text-neutral-300">
                     <span className="text-amber-400 font-mono mt-0.5 shrink-0">{i + 1}.</span>
                     {a}
@@ -368,7 +447,7 @@ export default function ThreatScanner() {
             </div>
 
             <p className="text-center text-[11px] text-neutral-600 font-mono">
-              {MOCK_RESULT.similar} casos similares detectados en {MOCK_RESULT.region}
+              {display.similar} casos similares detectados en {display.region}
             </p>
           </>
         )}
