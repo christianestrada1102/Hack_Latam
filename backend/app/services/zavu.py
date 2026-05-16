@@ -50,11 +50,11 @@ async def send_threat_alert(incident: dict) -> None:
     emotional_pressure = incident.get("emotional_pressure", "—")
 
     message = (
-        f"HackLatam Alerta #{incident_id_short}: "
+        f"HackLatam #{incident_id_short}: "
         f"{threat_type} detectado en {region}. "
         f"Riesgo: {risk_score}/100. "
         f"Presion emocional: {emotional_pressure}. "
-        f"Ver detalles: app.hacklatam.com"
+        f"No compartas datos personales."
     )
 
     await send_whatsapp_alert(settings.alert_phone, message[:160])
