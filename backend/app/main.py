@@ -1,10 +1,12 @@
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import init_db
-from app.routers import analyze, feed, stats
+from app.models import Incident  # noqa: F401 — registers model with Base.metadata
+from app.routers import analyze, feed
 
 
 @asynccontextmanager
@@ -28,11 +30,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(analyze.router, prefix="/api/analyze", tags=["analyze"])
-app.include_router(feed.router,    prefix="/api/feed",    tags=["feed"])
-app.include_router(stats.router,   prefix="/api/stats",   tags=["stats"])
+app.include_router(analyze.router, prefix="/api",      tags=["analyze"])
+app.include_router(feed.router,    prefix="/api/feed",  tags=["feed"])
 
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    return {"status": "ok", "version": "0.1.0"}
