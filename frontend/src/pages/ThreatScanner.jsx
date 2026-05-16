@@ -162,7 +162,9 @@ export default function ThreatScanner() {
   // contentOverride lets handleDemo pass the value directly,
   // avoiding stale-closure issues with queued state updates.
   const runAnalysis = useCallback((contentOverride) => {
-    const text = String(contentOverride ?? content ?? '').trim()
+    const raw = typeof contentOverride === 'string' ? contentOverride : (content ?? '')
+    const text = String(raw).trim()
+    console.log('[Scanner] appending text:', typeof text, text)
 
     setState('analyzing')
     setLogLines([])
@@ -317,7 +319,7 @@ export default function ThreatScanner() {
             <div className="flex items-center gap-2 mt-3">
               <button
                 disabled={!hasContent}
-                onClick={runAnalysis}
+                onClick={() => runAnalysis()}
                 className="flex items-center gap-1.5 bg-amber-400 text-[#131313] text-[12px] font-semibold px-4 py-2 rounded disabled:opacity-30 hover:bg-amber-300 transition-colors"
               >
                 Analyze <ChevronRight size={13} />
