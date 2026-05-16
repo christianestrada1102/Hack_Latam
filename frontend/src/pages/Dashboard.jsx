@@ -44,7 +44,7 @@ function MetricCard({ label, value, icon: Icon }) {
         <div className="stat-title text-[10px] uppercase tracking-widest font-mono text-neutral-500 !opacity-100 leading-tight">
           {label}
         </div>
-        <div className="stat-value font-mono font-semibold text-neutral-100 leading-none">
+        <div className="stat-value text-4xl font-mono font-semibold text-neutral-100 leading-none">
           {value}
         </div>
       </div>
@@ -54,7 +54,7 @@ function MetricCard({ label, value, icon: Icon }) {
 
 function IncidentRow({ score, title, location, ago, type }) {
   return (
-    <div className="card-base feed-item px-3 py-2.5 flex items-center gap-2.5 cursor-default hover:border-[#323232] transition-colors">
+    <div className="card-base feed-item px-3 py-2.5 flex items-center gap-2.5 cursor-default hover:bg-[#1f1f1f] transition-colors">
       <span
         className="font-mono text-sm font-bold shrink-0 w-7 text-right tabular-nums"
         style={{ color: scoreColor(score) }}

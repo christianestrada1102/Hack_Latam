@@ -30,10 +30,10 @@ export default function Sidebar() {
             to={to}
             end={to === '/'}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors ${
+              `flex items-center gap-3 px-3 py-2 text-sm transition-colors border-l-2 ${
                 isActive
-                  ? 'bg-[#201f1f] text-amber-400 font-medium'
-                  : 'text-neutral-400 hover:text-neutral-200 hover:bg-[#201f1f]'
+                  ? 'border-amber-400 bg-amber-400/5 text-amber-400 font-medium'
+                  : 'border-transparent text-neutral-400 hover:text-neutral-200 hover:bg-[#201f1f]'
               }`
             }
           >

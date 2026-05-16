@@ -180,7 +180,7 @@ function CircularScore({ score }) {
       </svg>
       <div className="relative flex flex-col items-center leading-none">
         <span className="font-mono text-[28px] font-bold" style={{ color }}>{score}</span>
-        <span className="text-[9px] text-neutral-500 uppercase tracking-widest mt-0.5">{t('report.risk')}</span>
+        <span className="text-[10px] text-neutral-500 uppercase tracking-widest mt-0.5 font-mono">{t('report.risk')}</span>
       </div>
     </div>
   )
