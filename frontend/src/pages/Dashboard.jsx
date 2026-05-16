@@ -134,7 +134,7 @@ export default function Dashboard() {
           feed.map((inc) => ({
             id:       inc.id,
             score:    inc.risk_score,
-            title:    `${inc.threat_type.charAt(0).toUpperCase() + inc.threat_type.slice(1)} · ${inc.region}`,
+            title:    `${inc.threat_type.toUpperCase()} · ${inc.region}`,
             location: inc.region?.split(',')[0] ?? '—',
             ago:      relativeTime(inc.created_at),
             type:     inc.threat_type,

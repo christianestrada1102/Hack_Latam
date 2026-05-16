@@ -78,8 +78,8 @@ function mapApiIncident(inc) {
     time:     formatTime(inc.created_at),
     type:     inc.threat_type,
     desc:     inc.entities?.keywords?.length
-                ? `${inc.threat_type.charAt(0).toUpperCase() + inc.threat_type.slice(1)} — ${inc.entities.keywords.slice(0, 3).join(', ')}`
-                : inc.threat_type,
+                ? inc.entities.keywords.slice(0, 3).join(' · ')
+                : `${inc.threat_type} · ${inc.region ?? '—'}`,
     location: inc.region ?? '—',
     risk:     inc.risk_score,
     campaign: inc.campaign_id ?? null,
