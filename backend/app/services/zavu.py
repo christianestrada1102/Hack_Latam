@@ -6,7 +6,7 @@ import httpx
 
 from app.config import settings
 
-_ZAVU_BASE = "https://api.zavu.io/v1"
+_ZAVU_BASE = "https://api.zavu.dev/v1"
 
 
 async def send_whatsapp_alert(phone: str, message: str) -> None:
@@ -16,7 +16,7 @@ async def send_whatsapp_alert(phone: str, message: str) -> None:
 
     url = f"{_ZAVU_BASE}/messages"
     masked_key = settings.zavu_api_key[:10] + "…"
-    body = {"to": phone, "message": message}
+    body = {"to": phone, "text": message}
 
     print(f"[Zavu] POST {url}")
     print(f"[Zavu] Authorization: Bearer {masked_key}")
