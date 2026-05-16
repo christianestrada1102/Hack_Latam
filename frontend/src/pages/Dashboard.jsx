@@ -1,10 +1,9 @@
-import { useEffect, useState, useMemo } from 'react'
-import 'leaflet/dist/leaflet.css'
-import { MapContainer, TileLayer, CircleMarker, Tooltip } from 'react-leaflet'
+import { useEffect, useState } from 'react'
 import { Shield, Activity, AlertTriangle, TrendingUp } from 'lucide-react'
 import { getStats, getFeed, getCampaigns } from '../lib/api'
 import { useLang } from '../lib/LanguageContext'
 import LoadingSpinner from '../components/LoadingSpinner'
+import ThreatMap from '../components/ThreatMap'
 
 const METRIC_DEFS = [
   { id: 'threats24h', i18nKey: 'dash.threats24h', statsField: 'total_24h',       icon: Shield        },
@@ -13,45 +12,11 @@ const METRIC_DEFS = [
   { id: 'avgRisk',    i18nKey: 'dash.avgRisk',     statsField: 'avg_risk_score',   icon: TrendingUp    },
 ]
 
-const GEOCODE = {
-  'chihuahua':     { lat: 28.6353,  lng: -106.0889 },
-  'ciudad juárez': { lat: 31.6904,  lng: -106.4245 },
-  'juárez':        { lat: 31.6904,  lng: -106.4245 },
-  'cdmx':          { lat: 19.4326,  lng: -99.1332  },
-  'monterrey':     { lat: 25.6866,  lng: -100.3161 },
-  'guadalajara':   { lat: 20.6597,  lng: -103.3496 },
-  'bogotá':        { lat:  4.7110,  lng: -74.0721  },
-  'lima':          { lat: -12.0464, lng: -77.0428  },
-  'buenos aires':  { lat: -34.6037, lng: -58.3816  },
-  'são paulo':     { lat: -23.5505, lng: -46.6333  },
-}
-
 const CAMPAIGN_NAMES = {
   'camp-bbva-fake-001':       'BBVA Fake Login',
   'camp-empleo-remoto-001':   'Empleo Remoto',
   'camp-cfe-sms-001':         'CFE Adeudo SMS',
   'camp-inversion-ponzi-001': 'Inversión Ponzi',
-}
-
-function geocodeRegion(region) {
-  if (!region) return null
-  const city = region.split(',')[0].trim().toLowerCase()
-  return GEOCODE[city] ?? null
-}
-
-function buildMapPoints(incidents) {
-  const cityMap = {}
-  for (const inc of incidents) {
-    const geo = geocodeRegion(inc.region)
-    if (!geo) continue
-    const city = inc.region.split(',')[0].trim()
-    if (!cityMap[city]) cityMap[city] = { ...geo, city, incidents: 0 }
-    cityMap[city].incidents++
-  }
-  return Object.values(cityMap).map((p) => ({
-    ...p,
-    r: Math.max(6, Math.min(20, 6 + Math.sqrt(p.incidents) * 3)),
-  }))
 }
 
 function scoreColor(s) {
@@ -172,9 +137,6 @@ export default function Dashboard() {
     icon: def.icon,
   }))
 
-  const mapPoints = useMemo(() => buildMapPoints(allIncidents), [allIncidents])
-  const totalIncidents = mapPoints.reduce((a, p) => a + p.incidents, 0)
-
   const maxCount = campaigns.reduce((m, c) => Math.max(m, c.count), 1)
   const topCampaigns = campaigns.slice(0, 4).map((c) => ({
     name:  CAMPAIGN_NAMES[c.campaign_id] ?? c.campaign_id,
@@ -223,40 +185,11 @@ export default function Dashboard() {
               {t('dash.threatMap')}
             </span>
             <span className="text-[10px] font-mono text-neutral-600">
-              {totalIncidents} {t('dash.incidentsMapped')}
+              {allIncidents.length} {t('dash.incidentsMapped')}
             </span>
           </div>
           <div className="flex-1 min-h-0">
-            <MapContainer
-              center={[19.4326, -99.1332]}
-              zoom={4}
-              scrollWheelZoom={false}
-              zoomControl={false}
-              attributionControl={false}
-              style={{ height: '100%', width: '100%', background: '#0d0d0d' }}
-            >
-              <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
-              {mapPoints.map((p) => (
-                <CircleMarker
-                  key={p.city}
-                  center={[p.lat, p.lng]}
-                  radius={p.r}
-                  pathOptions={{
-                    color: 'rgba(255,193,116,0.8)',
-                    fillColor: 'rgba(255,193,116,0.15)',
-                    fillOpacity: 1,
-                    weight: 1.5,
-                  }}
-                >
-                  <Tooltip direction="top" offset={[0, -p.r]}>
-                    <div style={{ fontFamily: 'monospace', fontSize: 11, background: '#1c1b1b', color: '#e5e5e5', padding: '4px 8px', border: '1px solid #262626' }}>
-                      <strong>{p.city}</strong><br />
-                      {p.incidents} {t('dash.incidents')}
-                    </div>
-                  </Tooltip>
-                </CircleMarker>
-              ))}
-            </MapContainer>
+            <ThreatMap incidents={allIncidents} />
           </div>
         </div>
       </div>
