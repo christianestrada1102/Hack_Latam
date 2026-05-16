@@ -82,6 +82,83 @@ function scoreColor(s) {
   return '#10b981'
 }
 
+const truncateRegion = (r, max = 20) =>
+  r ? (r.length > max ? r.slice(0, max) + '…' : r) : null
+
+function parseHighlights(text, entities) {
+  if (!text) return [{ text: '', type: null }]
+  const { phone, domain, keywords } = entities ?? {}
+  const ranges = []
+
+  const addRanges = (str, type) => {
+    if (!str || str === '—') return
+    const escaped = str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const re = new RegExp(escaped, 'gi')
+    let m
+    while ((m = re.exec(text)) !== null)
+      ranges.push({ start: m.index, end: m.index + m[0].length, type })
+  }
+
+  addRanges(domain, 'domain')
+  addRanges(phone, 'phone')
+  if (Array.isArray(keywords)) {
+    keywords.forEach((kw) => {
+      if (!kw) return
+      const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const re = new RegExp(`\\b${escaped}\\b`, 'gi')
+      let m
+      while ((m = re.exec(text)) !== null)
+        ranges.push({ start: m.index, end: m.index + m[0].length, type: 'keyword' })
+    })
+  }
+
+  ranges.sort((a, b) => a.start - b.start || b.end - a.end)
+  const segs = []
+  let pos = 0
+  for (const r of ranges) {
+    if (r.start < pos) continue
+    if (r.start > pos) segs.push({ text: text.slice(pos, r.start), type: null })
+    segs.push({ text: text.slice(r.start, r.end), type: r.type })
+    pos = r.end
+  }
+  if (pos < text.length) segs.push({ text: text.slice(pos), type: null })
+  return segs.length ? segs : [{ text, type: null }]
+}
+
+const HIGHLIGHT_STYLE = {
+  domain:  { background: '#f59e0b20', borderBottom: '1px solid #f59e0b80', color: '#f59e0b' },
+  phone:   { background: '#ef444420', borderBottom: '1px solid #ef444480' },
+  keyword: { background: '#f9731620', textDecoration: 'underline dotted #f97316' },
+}
+const TOOLTIP_LABEL = {
+  domain:  'Dominio sospechoso',
+  phone:   'Número sospechoso',
+  keyword: 'Táctica de manipulación',
+}
+
+function HighlightedContent({ text, entities }) {
+  const segs = parseHighlights(text, entities)
+  return (
+    <p className="text-[12px] text-neutral-300 font-mono leading-relaxed break-words whitespace-pre-wrap">
+      {segs.map((seg, i) =>
+        seg.type ? (
+          <span key={i} className="relative group inline" style={HIGHLIGHT_STYLE[seg.type]}>
+            {seg.text}
+            <span
+              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded whitespace-nowrap pointer-events-none z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+              style={{ background: '#1c1b1b', border: '1px solid #262626', fontSize: 11, color: '#f59e0b' }}
+            >
+              {TOOLTIP_LABEL[seg.type]}
+            </span>
+          </span>
+        ) : (
+          <span key={i}>{seg.text}</span>
+        )
+      )}
+    </p>
+  )
+}
+
 function CircularScore({ score }) {
   const { t } = useLang()
   const r = 38
@@ -322,7 +399,8 @@ export default function ThreatScanner() {
   const [state, setState]         = useState('idle')   // idle | analyzing | done
   const [logLines, setLogLines]   = useState([])
   const [result, setResult]       = useState(null)
-  const [savedToDB, setSavedToDB] = useState(false)
+  const [savedToDB, setSavedToDB]     = useState(false)
+  const [analyzedText, setAnalyzedText] = useState('')
 
   const fileRef    = useRef(null)
   const fileObjRef = useRef(null)
@@ -337,6 +415,7 @@ export default function ThreatScanner() {
     setState('analyzing')
     setLogLines([])
     setResult(null)
+    setAnalyzedText(text)
 
     // Start terminal animation with translated log lines
     LOG_TIMING.forEach(({ ms, key, color }) => {
@@ -393,6 +472,7 @@ export default function ThreatScanner() {
     setLogLines([])
     setResult(null)
     setSavedToDB(false)
+    setAnalyzedText('')
   }
 
   const hasContent = content.trim().length > 0 || fileName
@@ -547,23 +627,23 @@ export default function ThreatScanner() {
             {/* Score + category */}
             <div className="card-base p-4 flex items-center gap-4">
               <CircularScore score={display.score} />
-              <div>
-                <p className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono mb-1">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono mb-1 text-left">
                   {t('report.classification')}
                 </p>
-                <span className="text-[11px] font-semibold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded uppercase tracking-widest">
+                <span className="inline-block text-[11px] font-semibold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded uppercase tracking-widest max-w-full truncate">
                   {display.category}
                 </span>
-                <p className="text-[11px] text-neutral-500 font-mono mt-2">
-                  {display.similar} {t('report.similar')} · {display.region ?? t('scanner.regionUnknown')}
+                <p className="text-[11px] text-neutral-500 font-mono mt-2 truncate">
+                  {display.similar} {t('report.similar')} · {truncateRegion(display.region) ?? t('scanner.regionUnknown')}
                 </p>
               </div>
             </div>
 
             {/* Panic block — score > 75 */}
             {display.score > 75 && (
-              <div className="rounded border border-red-500/25 bg-red-500/5 p-3 flex gap-2.5">
-                <AlertOctagon size={15} className="text-red-400 shrink-0 mt-0.5" strokeWidth={1.5} />
+              <div className="rounded border border-red-500/25 bg-red-500/5 p-3 flex flex-col items-center gap-2 text-center">
+                <AlertOctagon size={15} className="text-red-400 shrink-0" strokeWidth={1.5} />
                 <div>
                   <p className="text-[12px] font-semibold text-red-400">{t('panic.title')}</p>
                   <p className="text-[11px] text-neutral-400 mt-0.5 leading-relaxed">
@@ -575,7 +655,7 @@ export default function ThreatScanner() {
 
             {/* Psychological Vectors */}
             <div className="card-base p-4">
-              <p className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono mb-3">
+              <p className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono mb-3 text-left">
                 {t('report.vectors')}
               </p>
               <div className="flex flex-col gap-3">
@@ -585,7 +665,7 @@ export default function ThreatScanner() {
 
             {/* Entities */}
             <div className="card-base p-4">
-              <p className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono mb-3">
+              <p className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono mb-3 text-left">
                 {t('report.entities')}
               </p>
               <div className="flex flex-col gap-2 font-mono text-[11px]">
@@ -618,7 +698,7 @@ export default function ThreatScanner() {
 
             {/* Recommended Actions */}
             <div className="card-base p-4">
-              <p className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono mb-3">
+              <p className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono mb-3 text-left">
                 {t('report.actions')}
               </p>
               <ul className="flex flex-col gap-2">
@@ -631,8 +711,18 @@ export default function ThreatScanner() {
               </ul>
             </div>
 
+            {/* Analyzed Content with highlights */}
+            {analyzedText && (
+              <div className="card-base p-4">
+                <p className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono mb-3 text-left">
+                  Contenido Analizado
+                </p>
+                <HighlightedContent text={analyzedText} entities={display.entities} />
+              </div>
+            )}
+
             <p className="text-center text-[11px] text-neutral-600 font-mono">
-              {display.similar} {t('report.casesIn')} {display.region ?? t('scanner.regionUnknown')}
+              {display.similar} {t('report.casesIn')} {truncateRegion(display.region) ?? t('scanner.regionUnknown')}
             </p>
           </>
         )}
