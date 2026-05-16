@@ -1,3 +1,3 @@
-from app.models.incident import Incident, ThreatType
+from app.models.incident import Incident
 
-__all__ = ["Incident", "ThreatType"]
+__all__ = ["Incident"]

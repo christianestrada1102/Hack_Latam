@@ -1,44 +1,44 @@
-import enum
+import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, Float, DateTime, Text, Enum as SAEnum
-from sqlalchemy.orm import Mapped, mapped_column
+
 from pgvector.sqlalchemy import Vector
+from sqlalchemy import DateTime, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
-
-
-class ThreatType(str, enum.Enum):
-    phishing = "phishing"
-    smishing = "smishing"
-    vishing = "vishing"
-    malware = "malware"
-    scam = "scam"
-    unknown = "unknown"
 
 
 class Incident(Base):
     __tablename__ = "incidents"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
-    # Input
-    raw_content: Mapped[str] = mapped_column(Text)
-    content_type: Mapped[str] = mapped_column(String(32))  # url | text | image | audio
-
     # Classification
-    threat_type: Mapped[ThreatType] = mapped_column(SAEnum(ThreatType), default=ThreatType.unknown)
-    risk_score: Mapped[float] = mapped_column(Float, default=0.0)   # 0.0 – 1.0
-    confidence: Mapped[float] = mapped_column(Float, default=0.0)
-
-    # Manipulation tactics detected (comma-separated tags)
-    tactics: Mapped[str | None] = mapped_column(Text, nullable=True)
-
-    # Geo
-    country: Mapped[str | None] = mapped_column(String(2), nullable=True)   # ISO-3166-1 alpha-2
+    threat_type: Mapped[str] = mapped_column(String(32), default="unknown")
     region: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    risk_score: Mapped[int] = mapped_column(Integer, default=0)
 
-    # Semantic embedding for similarity / campaign clustering
-    embedding: Mapped[list[float] | None] = mapped_column(Vector(1024), nullable=True)
+    # Emotional manipulation vectors (0-100)
+    emotional_pressure: Mapped[str] = mapped_column(String(16), default="low")  # low|medium|high|critical
+    urgency_score: Mapped[int] = mapped_column(Integer, default=0)
+    coercion_score: Mapped[int] = mapped_column(Integer, default=0)
+    authority_score: Mapped[int] = mapped_column(Integer, default=0)
+
+    # Structured extraction
+    entities: Mapped[dict] = mapped_column(JSONB, default=dict)
+
+    # Raw input
+    raw_content: Mapped[str] = mapped_column(Text, default="")
+
+    # pgvector: 1536-dim matches OpenRouter text-embedding-3-small
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(1536), nullable=True)
+
+    # Campaign linkage
+    similar_count: Mapped[int] = mapped_column(Integer, default=0)
+    campaign_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
