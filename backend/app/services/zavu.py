@@ -54,7 +54,7 @@ async def send_threat_alert(incident: dict) -> None:
         f"{threat_type} detectado en {region}. "
         f"Riesgo: {risk_score}/100. "
         f"Presion emocional: {emotional_pressure}. "
-        f"No compartas datos personales ni transfieras dinero."
+        f"Ver detalles: app.hacklatam.com"
     )
 
     await send_whatsapp_alert(settings.alert_phone, message[:160])
