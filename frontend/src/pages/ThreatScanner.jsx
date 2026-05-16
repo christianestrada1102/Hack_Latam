@@ -162,15 +162,15 @@ export default function ThreatScanner() {
   // contentOverride lets handleDemo pass the value directly,
   // avoiding stale-closure issues with queued state updates.
   const runAnalysis = useCallback((contentOverride) => {
-    const resolvedContent = contentOverride ?? content
+    const text = String(contentOverride ?? content ?? '').trim()
 
     setState('analyzing')
     setLogLines([])
     setResult(null)
 
     // Start terminal animation
-    LOG_LINES.forEach(({ t, text, color }) => {
-      setTimeout(() => setLogLines((prev) => [...prev, { text, color }]), t)
+    LOG_LINES.forEach(({ t, text: line, color }) => {
+      setTimeout(() => setLogLines((prev) => [...prev, { text: line, color }]), t)
     })
 
     // Build FormData for API
@@ -178,9 +178,9 @@ export default function ThreatScanner() {
     if (fileObjRef.current) {
       formData.append('file', fileObjRef.current)
     } else if (activeTab === 'url') {
-      formData.append('url', resolvedContent.trim())
+      formData.append('url', text)
     } else {
-      formData.append('text', resolvedContent.trim())
+      formData.append('text', text)
     }
 
     // Race: animation vs API — show done when both finish
@@ -295,14 +295,14 @@ export default function ThreatScanner() {
                 {activeTab === 'url' ? (
                   <input
                     type="text"
-                    value={content}
+                    value={content ?? ''}
                     onChange={(e) => setContent(e.target.value)}
                     placeholder="https://suspicious-link.mx/..."
                     className="w-full bg-[#1c1b1b] border border-[#262626] rounded px-3 py-2.5 text-[12px] font-mono text-neutral-200 placeholder-neutral-600 outline-none focus:border-[#383838]"
                   />
                 ) : (
                   <textarea
-                    value={content}
+                    value={content ?? ''}
                     onChange={(e) => setContent(e.target.value)}
                     placeholder="Paste suspicious message, email body, or SMS..."
                     rows={5}
