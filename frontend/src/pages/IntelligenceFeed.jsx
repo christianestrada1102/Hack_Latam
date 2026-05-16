@@ -1,17 +1,18 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Filter, TrendingUp, GitBranch } from 'lucide-react'
+import { getFeed } from '../lib/api'
 
-const ALL_INCIDENTS = [
+const SEED_INCIDENTS = [
   { id: 'INC-0891', time: '14:32', type: 'smishing',  desc: 'WhatsApp Empleo Falso — oferta remota CFE',              location: 'Chihuahua, MX',  risk: 92, campaign: 'Empleo Remoto Falso' },
   { id: 'INC-0890', time: '14:27', type: 'phishing',  desc: 'BBVA Clone — página login falsa con SSL válido',         location: 'CDMX, MX',       risk: 88, campaign: 'BBVA Fake Login'    },
   { id: 'INC-0889', time: '14:20', type: 'smishing',  desc: 'CFE Adeudo — SMS con link de pago falso',                location: 'Chihuahua, MX',  risk: 78, campaign: 'CFE Adeudo SMS'    },
-  { id: 'INC-0888', time: '14:14', type: 'phishing',  desc: 'SAT Suplantación — notificación fiscal fraudulenta',     location: 'Monterrey, MX',  risk: 71, campaign: null                },
+  { id: 'INC-0888', time: '14:14', type: 'phishing',  desc: 'SAT Suplantación — notificación fiscal fraudulenta',     location: 'Monterrey, MX',  risk: 71, campaign: null               },
   { id: 'INC-0887', time: '13:51', type: 'scam',      desc: 'Inversión Ponzi — rendimientos 300% garantizados',       location: 'Juárez, MX',     risk: 65, campaign: 'Inversión Garantizada' },
-  { id: 'INC-0886', time: '13:35', type: 'scam',      desc: 'Tienda Facebook Falsa — zapatos, sin entrega',           location: 'Bogotá, CO',     risk: 45, campaign: null                },
-  { id: 'INC-0885', time: '13:02', type: 'phishing',  desc: 'MercadoLibre Fake Delivery — QR code malicioso',         location: 'Lima, PE',       risk: 55, campaign: null                },
-  { id: 'INC-0884', time: '12:44', type: 'phishing',  desc: 'BBVA Login v2 — formulario captura OTP',                 location: 'Guadalajara, MX',risk: 83, campaign: 'BBVA Fake Login'    },
-  { id: 'INC-0883', time: '12:18', type: 'scam',      desc: 'Fraude Bimbo Empleos — cuota inscripción $500',          location: 'CDMX, MX',       risk: 61, campaign: null                },
-  { id: 'INC-0882', time: '11:55', type: 'scam',      desc: 'Crypto Recovery Scam — recupera fondos perdidos',        location: 'Buenos Aires, AR',risk: 77, campaign: null               },
+  { id: 'INC-0886', time: '13:35', type: 'scam',      desc: 'Tienda Facebook Falsa — zapatos, sin entrega',           location: 'Bogotá, CO',     risk: 45, campaign: null               },
+  { id: 'INC-0885', time: '13:02', type: 'phishing',  desc: 'MercadoLibre Fake Delivery — QR code malicioso',         location: 'Lima, PE',       risk: 55, campaign: null               },
+  { id: 'INC-0884', time: '12:44', type: 'phishing',  desc: 'BBVA Login v2 — formulario captura OTP',                 location: 'Guadalajara, MX',risk: 83, campaign: 'BBVA Fake Login'   },
+  { id: 'INC-0883', time: '12:18', type: 'scam',      desc: 'Fraude Bimbo Empleos — cuota inscripción $500',          location: 'CDMX, MX',       risk: 61, campaign: null               },
+  { id: 'INC-0882', time: '11:55', type: 'scam',      desc: 'Crypto Recovery Scam — recupera fondos perdidos',        location: 'Buenos Aires, AR',risk: 77, campaign: null              },
 ]
 
 const CLUSTERS = [
@@ -66,13 +67,53 @@ function clusterRiskDot(risk) {
   return 'bg-neutral-500'
 }
 
+function formatTime(isoString) {
+  const d = new Date(isoString)
+  return d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false })
+}
+
+function mapApiIncident(inc) {
+  return {
+    id:       `INC-${inc.id.slice(0, 4).toUpperCase()}`,
+    time:     formatTime(inc.created_at),
+    type:     inc.threat_type,
+    desc:     inc.raw_content?.slice(0, 80) ?? '—',
+    location: inc.region ?? '—',
+    risk:     inc.risk_score,
+    campaign: inc.campaign_id ?? null,
+  }
+}
+
 export default function IntelligenceFeed() {
-  const [filters, setFilters] = useState({ region: 'All regions', type: 'All types', risk: 'all' })
+  const [incidents, setIncidents] = useState(SEED_INCIDENTS)
+  const [filters, setFilters]     = useState({ region: 'All regions', type: 'All types', risk: 'all' })
 
   const setFilter = (k, v) => setFilters((f) => ({ ...f, [k]: v }))
 
+  // Build API filter params from local filter state
+  const apiFilters = useMemo(() => {
+    const f = {}
+    if (filters.region !== 'All regions') f.region = filters.region
+    if (filters.type   !== 'All types')   f.threat_type = filters.type
+    if (filters.risk !== 'all') {
+      const bands = { critical: 80, high: 60, medium: 40, low: 0 }
+      f.min_risk = bands[filters.risk] ?? 0
+    }
+    return f
+  }, [filters])
+
+  useEffect(() => {
+    let cancelled = false
+    getFeed(apiFilters).then((data) => {
+      if (cancelled || !data) return
+      setIncidents(data.map(mapApiIncident))
+    })
+    return () => { cancelled = true }
+  }, [apiFilters])
+
+  // Client-side filter on seed data (when API unavailable the seed is already in state)
   const filtered = useMemo(() => {
-    return ALL_INCIDENTS.filter((inc) => {
+    return incidents.filter((inc) => {
       if (filters.region !== 'All regions' && !inc.location.includes(filters.region)) return false
       if (filters.type   !== 'All types'   && inc.type !== filters.type)              return false
       if (filters.risk !== 'all') {
@@ -81,7 +122,7 @@ export default function IntelligenceFeed() {
       }
       return true
     })
-  }, [filters])
+  }, [incidents, filters])
 
   return (
     <div className="flex h-full min-h-0">
@@ -108,7 +149,7 @@ export default function IntelligenceFeed() {
           />
 
           <span className="ml-auto text-[11px] font-mono text-neutral-600">
-            {filtered.length} / {ALL_INCIDENTS.length} incidents
+            {filtered.length} / {incidents.length} incidents
           </span>
         </div>
 
