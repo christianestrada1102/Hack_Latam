@@ -149,7 +149,7 @@ function TerminalLog({ lines }) {
 
 function AnalyzingPanel() {
   return (
-    <div className="flex flex-col items-center gap-4 pt-8 px-2 w-full">
+    <div className="flex flex-col items-center justify-center gap-4 px-2 w-full" style={{ minHeight: 400, height: '100%' }}>
       <div style={{ color: '#ffc174', width: 80, height: 80 }}>
         <svg
           version="1.1"
