@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import gsap from 'gsap'
+import { useGSAP } from '@gsap/react'
 import { Shield, Activity, AlertTriangle, TrendingUp } from 'lucide-react'
 import { getStats, getFeed, getCampaigns } from '../lib/api'
 import { useLang } from '../lib/LanguageContext'
@@ -34,7 +36,7 @@ function relativeTime(isoString) {
 
 function MetricCard({ label, value, icon: Icon }) {
   return (
-    <div className="card-base p-4">
+    <div className="card-base metric-card p-4">
       <div className="flex items-start justify-between mb-3">
         <span className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono leading-tight">
           {label}
@@ -48,7 +50,7 @@ function MetricCard({ label, value, icon: Icon }) {
 
 function IncidentRow({ score, title, location, ago, type }) {
   return (
-    <div className="card-base px-3 py-2.5 flex items-center gap-2.5 cursor-default hover:border-[#323232] transition-colors">
+    <div className="card-base feed-item px-3 py-2.5 flex items-center gap-2.5 cursor-default hover:border-[#323232] transition-colors">
       <span
         className="font-mono text-sm font-bold shrink-0 w-7 text-right tabular-nums"
         style={{ color: scoreColor(score) }}
@@ -87,6 +89,21 @@ export default function Dashboard() {
   const [allIncidents, setAllIncidents] = useState([])
   const [campaigns, setCampaigns]     = useState([])
   const [loading, setLoading]         = useState(true)
+
+  const dashRef       = useRef(null)
+  const feedAnimated  = useRef(false)
+
+  useGSAP(() => {
+    gsap.from('.metric-card', { opacity: 0, y: 20, duration: 0.5, stagger: 0.1 })
+    gsap.from('.map-container', { opacity: 0, duration: 0.8, delay: 0.3 })
+  }, { scope: dashRef })
+
+  useEffect(() => {
+    if (feedItems.length > 0 && !feedAnimated.current) {
+      feedAnimated.current = true
+      gsap.from('.feed-item', { opacity: 0, x: -20, duration: 0.4, stagger: 0.08 })
+    }
+  }, [feedItems.length])
 
   useEffect(() => {
     let cancelled = false
@@ -145,7 +162,7 @@ export default function Dashboard() {
   }))
 
   return (
-    <div className="p-5 flex flex-col gap-3">
+    <div ref={dashRef} className="p-5 flex flex-col gap-3">
       {/* Metrics */}
       <div className="grid grid-cols-4 gap-3">
         {metrics.map((m) => <MetricCard key={m.id} {...m} />)}
@@ -179,7 +196,7 @@ export default function Dashboard() {
         </div>
 
         {/* Map */}
-        <div className="flex-1 card-base flex flex-col overflow-hidden">
+        <div className="map-container flex-1 card-base flex flex-col overflow-hidden">
           <div className="px-3 py-2 border-b border-[#262626] shrink-0 flex items-center justify-between">
             <span className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono">
               {t('dash.threatMap')}
