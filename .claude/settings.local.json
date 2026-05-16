@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(New-Item *)",
+      "PowerShell(py *)",
+      "Bash(/c/Users/chris/Desktop/DEV/PROYECTOS/SOS/SOS/sos_backend/Scripts/python.exe --version)",
+      "Bash(/c/Users/chris/Desktop/DEV/PROYECTOS/SOS/SOS/sos_backend/Scripts/python.exe -c \"import sys; print\\(sys.base_prefix\\)\")",
+      "Bash(git add *)",
+      "Bash(git commit -m '@ *)"
+    ]
+  }
+}
