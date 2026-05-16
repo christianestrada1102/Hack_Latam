@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     openrouter_api_key: str = ""
     zavu_api_key: str = ""
     make_webhook_url: str = ""
+    alert_phone: str = ""
     cors_origins: list[str] = ["http://localhost:5173"]
 
 
