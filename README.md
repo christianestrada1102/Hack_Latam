@@ -98,7 +98,7 @@ MAKE_WEBHOOK_URL=
 
 ## Demo
 
-**Live demo:** [hacklatam.vercel.app](https://hacklatam.vercel.app) *(coming soon)*
+**Live demo:** [hacklatam.vercel.app]  *(coming soon)*
 
 ---
 
