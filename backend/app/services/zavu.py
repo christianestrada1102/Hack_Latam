@@ -43,13 +43,18 @@ async def send_threat_alert(incident: dict) -> None:
     if not settings.alert_phone:
         return
 
-    threat_type = incident.get("threat_type", "unknown")
-    region      = incident.get("region") or "—"
-    risk_score  = incident.get("risk_score", 0)
+    incident_id_short  = str(incident.get("incident_id", "")).replace("-", "")[:8]
+    threat_type        = incident.get("threat_type", "unknown")
+    region             = incident.get("region") or "—"
+    risk_score         = incident.get("risk_score", 0)
+    emotional_pressure = incident.get("emotional_pressure", "—")
 
     message = (
-        f"HackLatam: {threat_type} detectado en {region}. "
-        f"Riesgo {risk_score}/100. Revisa la app para detalles."
+        f"HackLatam Alerta #{incident_id_short}: "
+        f"{threat_type} detectado en {region}. "
+        f"Riesgo: {risk_score}/100. "
+        f"Presion emocional: {emotional_pressure}. "
+        f"No compartas datos personales ni transfieras dinero."
     )
 
-    await send_whatsapp_alert(settings.alert_phone, message)
+    await send_whatsapp_alert(settings.alert_phone, message[:160])
