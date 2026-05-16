@@ -190,10 +190,12 @@ export default function ThreatScanner() {
     const apiFetch = analyzeContent(formData)
 
     Promise.allSettled([animationDone, apiFetch]).then(([, apiResult]) => {
-      const mapped =
-        apiResult.status === 'fulfilled' && apiResult.value
-          ? mapApiResult(apiResult.value)
-          : null
+      const apiData = apiResult.status === 'fulfilled' ? apiResult.value : null
+      console.log('[Scanner] analyzeContent returned:', apiData)
+
+      const mapped = apiData ? mapApiResult(apiData) : null
+      console.log('[Scanner] mapApiResult produced:', mapped)
+
       setResult(mapped ?? MOCK_RESULT)
       setState('done')
     })

@@ -32,9 +32,16 @@ export async function analyzeContent(formData) {
       method: 'POST',
       body: formData,
     })
-    if (!res.ok) return null
-    return await res.json()
-  } catch {
+    if (!res.ok) {
+      const body = await res.text()
+      console.error('[API] analyzeContent failed:', res.status, body)
+      return null
+    }
+    const data = await res.json()
+    console.log('[API] analyzeContent response:', data)
+    return data
+  } catch (err) {
+    console.error('[API] analyzeContent network error:', err)
     return null
   }
 }
