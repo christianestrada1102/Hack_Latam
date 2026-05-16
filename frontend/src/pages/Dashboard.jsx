@@ -133,8 +133,8 @@ export default function Dashboard() {
           </div>
           <div className="flex-1 min-h-0">
             <MapContainer
-              center={[-10, -68]}
-              zoom={3}
+              center={[19.4326, -99.1332]}
+              zoom={4}
               scrollWheelZoom={false}
               zoomControl={false}
               attributionControl={false}
