@@ -26,7 +26,11 @@ async def send_whatsapp_alert(phone: str, message: str) -> None:
         try:
             resp = await client.post(
                 url,
-                headers={"Authorization": f"Bearer {settings.zavu_api_key}"},
+                headers={
+                    "Authorization": f"Bearer {settings.zavu_api_key}",
+                    "Zavu-Channel":  "sms",
+                    "Zavu-Sender":   "kd713js1f8jm254rmyyw87xgcd86v29w",
+                },
                 json=body,
             )
             print(f"[Zavu] Response status: {resp.status_code}")
