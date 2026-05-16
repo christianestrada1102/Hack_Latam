@@ -48,9 +48,8 @@ async def send_threat_alert(incident: dict) -> None:
     risk_score  = incident.get("risk_score", 0)
 
     message = (
-        f"HackLatam Alerta: Se detecto {threat_type} en "
-        f"{region} con riesgo {risk_score}/100. "
-        f"Verifica en hacklatam.vercel.app"
+        f"HackLatam: {threat_type} detectado en {region}. "
+        f"Riesgo {risk_score}/100. Revisa la app para detalles."
     )
 
     await send_whatsapp_alert(settings.alert_phone, message)
