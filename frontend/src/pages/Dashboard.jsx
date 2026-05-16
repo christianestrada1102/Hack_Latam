@@ -1,15 +1,17 @@
+import { useEffect, useState } from 'react'
 import 'leaflet/dist/leaflet.css'
 import { MapContainer, TileLayer, CircleMarker, Tooltip } from 'react-leaflet'
 import { Shield, Activity, AlertTriangle, TrendingUp } from 'lucide-react'
+import { getStats, getFeed } from '../lib/api'
 
-const METRICS = [
+const SEED_METRICS = [
   { label: 'Threats Detected (24H)', value: '142', icon: Shield,        delta: '+12', up: true  },
   { label: 'Active Campaigns',       value: '12',  icon: Activity,      delta: '+3',  up: true  },
   { label: 'Regional Alerts',        value: '8',   icon: AlertTriangle, delta: '-1',  up: false },
   { label: 'Avg Risk Score',         value: '67.3', icon: TrendingUp,   delta: '+2.1', up: true },
 ]
 
-const INCIDENTS = [
+const SEED_INCIDENTS = [
   { id: 1, score: 92, title: 'WhatsApp Empleo Falso',   location: 'Chihuahua', ago: '2min ago',  type: 'smishing'  },
   { id: 2, score: 88, title: 'BBVA Clone Phishing',     location: 'CDMX',      ago: '5min ago',  type: 'phishing'  },
   { id: 3, score: 78, title: 'CFE Fraude SMS',          location: 'Chihuahua', ago: '12min ago', type: 'smishing'  },
@@ -42,6 +44,13 @@ function scoreColor(s) {
   if (s >= 80) return '#ef4444'
   if (s >= 60) return '#f59e0b'
   return '#6b7280'
+}
+
+function relativeTime(isoString) {
+  const diff = Math.floor((Date.now() - new Date(isoString)) / 1000)
+  if (diff < 60)   return `${diff}s ago`
+  if (diff < 3600) return `${Math.floor(diff / 60)}min ago`
+  return `${Math.floor(diff / 3600)}h ago`
 }
 
 function MetricCard({ label, value, icon: Icon, delta, up }) {
@@ -96,11 +105,61 @@ function CampaignBar({ name, delta, pct }) {
 }
 
 export default function Dashboard() {
+  const [metrics, setMetrics]     = useState(SEED_METRICS)
+  const [incidents, setIncidents] = useState(SEED_INCIDENTS)
+  const [loading, setLoading]     = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function load() {
+      const [stats, feed] = await Promise.all([
+        getStats(),
+        getFeed({ limit: 6 }),
+      ])
+
+      if (cancelled) return
+
+      if (stats) {
+        setMetrics([
+          { label: 'Threats Detected (24H)', value: String(stats.total_24h),          icon: Shield,        delta: '+12', up: true  },
+          { label: 'Active Campaigns',       value: String(stats.active_campaigns),    icon: Activity,      delta: '+3',  up: true  },
+          { label: 'Regional Alerts',        value: String(stats.regional_alerts),     icon: AlertTriangle, delta: '-1',  up: false },
+          { label: 'Avg Risk Score',         value: (stats.avg_risk_score ?? 0).toFixed(1), icon: TrendingUp, delta: '+2.1', up: true },
+        ])
+      }
+
+      if (feed && feed.length > 0) {
+        setIncidents(
+          feed.map((inc) => ({
+            id:       inc.id,
+            score:    inc.risk_score,
+            title:    inc.raw_content?.slice(0, 50) ?? inc.id,
+            location: inc.region?.split(',')[0] ?? '—',
+            ago:      relativeTime(inc.created_at),
+            type:     inc.threat_type,
+          }))
+        )
+      }
+
+      setLoading(false)
+    }
+
+    load()
+    return () => { cancelled = true }
+  }, [])
+
   return (
     <div className="p-5 flex flex-col gap-3">
       {/* Metrics */}
       <div className="grid grid-cols-4 gap-3">
-        {METRICS.map((m) => <MetricCard key={m.label} {...m} />)}
+        {metrics.map((m) => (
+          <MetricCard
+            key={m.label}
+            {...m}
+            value={loading ? '…' : m.value}
+          />
+        ))}
       </div>
 
       {/* Feed + Map */}
@@ -117,7 +176,7 @@ export default function Dashboard() {
             </span>
           </div>
           <div className="flex flex-col gap-1.5">
-            {INCIDENTS.map((inc) => <IncidentRow key={inc.id} {...inc} />)}
+            {incidents.map((inc) => <IncidentRow key={inc.id} {...inc} />)}
           </div>
         </div>
 
