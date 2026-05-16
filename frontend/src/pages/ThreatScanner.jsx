@@ -68,6 +68,7 @@ function mapApiResult(api) {
       domain:   api.entities?.domains?.[0]  ?? '—',
       keywords: api.entities?.keywords      ?? [],
     },
+    region:  api.region ?? null,
     actions: api.recommended_actions ?? MOCK_RESULT.actions,
     similar: api.similar_count ?? 0,
     region:  api.region ?? '—',

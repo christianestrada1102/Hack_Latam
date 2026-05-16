@@ -156,7 +156,8 @@ async def analyze_text_threat(text: str) -> dict:
         "role": "user",
         "content": (
             "You are a cybersecurity analyst specializing in digital fraud in Latin America.\n"
-            "Analyze the following content for phishing, smishing, vishing, or scam indicators.\n\n"
+            "Analyze the following content for phishing, smishing, vishing, or scam indicators.\n"
+            "Write all recommended_actions in Spanish.\n\n"
             "Return ONLY valid JSON — no markdown, no extra text:\n"
             + _ANALYSIS_SCHEMA
             + "\n\nContent to analyze:\n"
