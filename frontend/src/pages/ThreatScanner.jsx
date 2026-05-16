@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Upload, Link, FileText, Mic, ChevronRight, AlertOctagon, ShieldAlert } from 'lucide-react'
+import { Upload, Link, FileText, Mic, ChevronRight, AlertOctagon, ShieldAlert, CheckCircle } from 'lucide-react'
 import { analyzeContent } from '../lib/api'
 import { useLang } from '../lib/LanguageContext'
 
@@ -72,7 +72,7 @@ function mapApiResult(api) {
     },
     actions: api.recommended_actions ?? MOCK_RESULT.actions,
     similar: api.similar_count ?? 0,
-    region:  api.region ?? '—',
+    region:  api.region ?? null,
   }
 }
 
@@ -322,6 +322,7 @@ export default function ThreatScanner() {
   const [state, setState]         = useState('idle')   // idle | analyzing | done
   const [logLines, setLogLines]   = useState([])
   const [result, setResult]       = useState(null)
+  const [savedToDB, setSavedToDB] = useState(false)
 
   const fileRef    = useRef(null)
   const fileObjRef = useRef(null)
@@ -365,6 +366,7 @@ export default function ThreatScanner() {
       const mapped = apiData ? mapApiResult(apiData) : null
       console.log('[Scanner] mapApiResult produced:', mapped)
 
+      if (apiData) setSavedToDB(true)
       setResult(mapped ?? MOCK_RESULT)
       setState('done')
     })
@@ -390,6 +392,7 @@ export default function ThreatScanner() {
     setState('idle')
     setLogLines([])
     setResult(null)
+    setSavedToDB(false)
   }
 
   const hasContent = content.trim().length > 0 || fileName
@@ -518,6 +521,12 @@ export default function ThreatScanner() {
               )}
             </div>
             <TerminalLog lines={logLines} />
+            {state === 'done' && savedToDB && (
+              <div className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-500">
+                <CheckCircle size={12} strokeWidth={1.5} />
+                {t('scanner.savedToDB')}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -546,7 +555,7 @@ export default function ThreatScanner() {
                   {display.category}
                 </span>
                 <p className="text-[11px] text-neutral-500 font-mono mt-2">
-                  {display.similar} {t('report.similar')} · {display.region}
+                  {display.similar} {t('report.similar')} · {display.region ?? t('scanner.regionUnknown')}
                 </p>
               </div>
             </div>
@@ -623,7 +632,7 @@ export default function ThreatScanner() {
             </div>
 
             <p className="text-center text-[11px] text-neutral-600 font-mono">
-              {display.similar} {t('report.casesIn')} {display.region}
+              {display.similar} {t('report.casesIn')} {display.region ?? t('scanner.regionUnknown')}
             </p>
           </>
         )}
