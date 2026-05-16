@@ -148,6 +148,7 @@ async def analyze_text_threat(text: str) -> dict:
     Classify a message or URL for threat indicators using Mistral Small.
     Returns a complete analysis dict matching the ThreatReport schema.
     """
+    print(f"[analyze_text_threat] type={type(text)} repr={repr(text)[:200]}")
     if not settings.openrouter_api_key:
         return _empty_analysis()
 

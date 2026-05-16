@@ -102,6 +102,8 @@ async def analyze(
             if not embed_text:
                 raise HTTPException(status_code=422, detail="Content cannot be empty.")
 
+            print(f"[analyze] text_content type={type(embed_text)} repr={repr(embed_text)[:200]}")
+
             # Mistral Small + Claude Haiku in parallel
             analysis, emotional = await asyncio.gather(
                 mistral_svc.analyze_text_threat(embed_text),
