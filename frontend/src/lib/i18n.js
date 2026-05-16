@@ -221,7 +221,6 @@ export const translations = {
     'intel.col.desc':   'Description',
     'intel.col.loc':    'Location',
     'intel.col.risk':   'Risk',
-    'intel.noMatch':    'No incidents match current filters',
     'intel.count':      'incidents',
     'intel.clusters':   'Active Clusters',
     'intel.spikes':     'Spike Detection',
