@@ -68,7 +68,6 @@ function mapApiResult(api) {
       domain:   api.entities?.domains?.[0]  ?? '—',
       keywords: api.entities?.keywords      ?? [],
     },
-    region:  api.region ?? null,
     actions: api.recommended_actions ?? MOCK_RESULT.actions,
     similar: api.similar_count ?? 0,
     region:  api.region ?? '—',
@@ -148,7 +147,7 @@ function TerminalLog({ lines }) {
   )
 }
 
-function AnalyzingPanel({ lines }) {
+function AnalyzingPanel() {
   return (
     <div className="flex flex-col items-center gap-4 pt-8 px-2 w-full">
       <div style={{ color: '#ffc174', width: 80, height: 80 }}>
@@ -305,9 +304,6 @@ function AnalyzingPanel({ lines }) {
       <p style={{ fontSize: 13, color: '#a08e7a', fontFamily: 'monospace' }}>
         Analizando amenaza...
       </p>
-      <div className="w-full">
-        <TerminalLog lines={lines} />
-      </div>
     </div>
   )
 }
@@ -530,7 +526,7 @@ export default function ThreatScanner() {
             </p>
           </div>
         ) : state === 'analyzing' ? (
-          <AnalyzingPanel lines={logLines} />
+          <AnalyzingPanel />
         ) : (
           <>
             {/* Score + category */}
