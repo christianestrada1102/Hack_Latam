@@ -1,3 +1,4 @@
+import asyncio
 import json
 from typing import Optional
 
@@ -10,6 +11,8 @@ from app.config import settings
 from app.database import get_db
 from app.models import Incident
 from app.services import embeddings, mistral
+from app.services import make as make_svc
+from app.services import zavu as zavu_svc
 
 router = APIRouter()
 
@@ -171,7 +174,7 @@ async def analyze(
     await db.commit()
     await db.refresh(incident)
 
-    return ThreatReport(
+    report = ThreatReport(
         incident_id=str(incident.id),
         risk_score=incident.risk_score,
         threat_type=incident.threat_type,
@@ -184,3 +187,30 @@ async def analyze(
         recommended_actions=analysis.get("recommended_actions", []),
         panic_interrupt=incident.risk_score > 75,
     )
+
+    incident_payload = {
+        "incident_id":        report.incident_id,
+        "threat_type":        report.threat_type,
+        "region":             analysis.get("region") or "",
+        "risk_score":         report.risk_score,
+        "emotional_pressure": report.emotional_pressure,
+        "panic_interrupt":    report.panic_interrupt,
+        "entities":           report.entities,
+    }
+
+    if report.risk_score >= 80:
+        asyncio.create_task(make_svc.trigger_high_risk_alert(incident_payload))
+        asyncio.create_task(zavu_svc.send_threat_alert(incident_payload))
+
+    if report.similar_count >= 5:
+        cluster_payload = {
+            "cluster_id":     report.incident_id,
+            "threat_type":    report.threat_type,
+            "region":         analysis.get("region") or "",
+            "incident_count": report.similar_count,
+            "top_keywords":   report.entities.get("keywords", [])[:5],
+            "risk_score":     report.risk_score,
+        }
+        asyncio.create_task(make_svc.trigger_new_cluster(cluster_payload))
+
+    return report
