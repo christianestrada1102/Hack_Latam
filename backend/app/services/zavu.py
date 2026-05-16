@@ -11,16 +11,28 @@ _ZAVU_BASE = "https://api.zavu.io/v1"
 
 async def send_whatsapp_alert(phone: str, message: str) -> None:
     if not settings.zavu_api_key or not phone:
+        print("[Zavu] Skipped — ZAVU_API_KEY or ALERT_PHONE not set")
         return
+
+    url = f"{_ZAVU_BASE}/messages"
+    masked_key = settings.zavu_api_key[:10] + "…"
+    body = {"to": phone, "message": message}
+
+    print(f"[Zavu] POST {url}")
+    print(f"[Zavu] Authorization: Bearer {masked_key}")
+    print(f"[Zavu] Body: {body}")
+
     async with httpx.AsyncClient(timeout=15) as client:
         try:
-            await client.post(
-                f"{_ZAVU_BASE}/messages",
+            resp = await client.post(
+                url,
                 headers={"Authorization": f"Bearer {settings.zavu_api_key}"},
-                json={"to": phone, "message": message},
+                json=body,
             )
-        except Exception:
-            pass  # fire-and-forget — never surface errors to callers
+            print(f"[Zavu] Response status: {resp.status_code}")
+            print(f"[Zavu] Response body: {resp.text}")
+        except Exception as exc:
+            print(f"[Zavu] Request failed: {exc}")
 
 
 async def send_threat_alert(incident: dict) -> None:

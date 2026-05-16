@@ -7,6 +7,7 @@ from app.config import settings
 from app.database import init_db
 from app.models import Incident  # noqa: F401 — registers model with Base.metadata
 from app.routers import analyze, feed
+from app.services import zavu as zavu_svc
 
 
 @asynccontextmanager
@@ -37,3 +38,22 @@ app.include_router(feed.router,    prefix="/api/feed",  tags=["feed"])
 @app.get("/health")
 async def health():
     return {"status": "ok", "version": "0.1.0"}
+
+
+@app.get("/test/zavu")
+async def test_zavu():
+    mock_incident = {
+        "incident_id":        "test-001",
+        "threat_type":        "smishing",
+        "region":             "Chihuahua, MX",
+        "risk_score":         92,
+        "emotional_pressure": "critical",
+        "panic_interrupt":    True,
+        "entities": {
+            "phones":   ["+52 614-822-5511"],
+            "domains":  [],
+            "keywords": ["urgente", "empleo", "CURP"],
+        },
+    }
+    await zavu_svc.send_threat_alert(mock_incident)
+    return {"status": "sent", "alert_phone": zavu_svc.settings.alert_phone or "not set"}
