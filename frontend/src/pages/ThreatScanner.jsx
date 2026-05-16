@@ -399,8 +399,8 @@ export default function ThreatScanner() {
   const [state, setState]         = useState('idle')   // idle | analyzing | done
   const [logLines, setLogLines]   = useState([])
   const [result, setResult]       = useState(null)
-  const [savedToDB, setSavedToDB]     = useState(false)
-  const [analyzedText, setAnalyzedText] = useState('')
+  const [savedToDB, setSavedToDB]         = useState(false)
+  const [originalContent, setOriginalContent] = useState('')
 
   const fileRef    = useRef(null)
   const fileObjRef = useRef(null)
@@ -410,12 +410,11 @@ export default function ThreatScanner() {
   const runAnalysis = useCallback((contentOverride) => {
     const raw = typeof contentOverride === 'string' ? contentOverride : (content ?? '')
     const text = String(raw).trim()
-    console.log('[Scanner] appending text:', typeof text, text)
+    setOriginalContent(text)
 
     setState('analyzing')
     setLogLines([])
     setResult(null)
-    setAnalyzedText(text)
 
     // Start terminal animation with translated log lines
     LOG_TIMING.forEach(({ ms, key, color }) => {
@@ -472,7 +471,7 @@ export default function ThreatScanner() {
     setLogLines([])
     setResult(null)
     setSavedToDB(false)
-    setAnalyzedText('')
+    setOriginalContent('')
   }
 
   const hasContent = content.trim().length > 0 || fileName
@@ -607,6 +606,14 @@ export default function ThreatScanner() {
                 {t('scanner.savedToDB')}
               </div>
             )}
+            {state === 'done' && originalContent && (
+              <div className="card-base p-3">
+                <p className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono mb-2">
+                  Contenido Analizado
+                </p>
+                <HighlightedContent text={originalContent} entities={display.entities} />
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -635,7 +642,7 @@ export default function ThreatScanner() {
                   {display.category}
                 </span>
                 <p className="text-[11px] text-neutral-500 font-mono mt-2 truncate">
-                  {display.similar} {t('report.similar')} · {truncateRegion(display.region) ?? t('scanner.regionUnknown')}
+                  {display.similar} {t('report.similar')} · {truncateRegion(display.region) ?? 'región desconocida'}
                 </p>
               </div>
             </div>
@@ -711,18 +718,8 @@ export default function ThreatScanner() {
               </ul>
             </div>
 
-            {/* Analyzed Content with highlights */}
-            {analyzedText && (
-              <div className="card-base p-4">
-                <p className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono mb-3 text-left">
-                  Contenido Analizado
-                </p>
-                <HighlightedContent text={analyzedText} entities={display.entities} />
-              </div>
-            )}
-
             <p className="text-center text-[11px] text-neutral-600 font-mono">
-              {display.similar} {t('report.casesIn')} {truncateRegion(display.region) ?? t('scanner.regionUnknown')}
+              {display.similar} {t('report.casesIn')} {truncateRegion(display.region) ?? 'región desconocida'}
             </p>
           </>
         )}
