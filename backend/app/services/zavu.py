@@ -43,20 +43,14 @@ async def send_threat_alert(incident: dict) -> None:
     if not settings.alert_phone:
         return
 
-    threat_type = incident.get("threat_type", "unknown").upper()
+    threat_type = incident.get("threat_type", "unknown")
     region      = incident.get("region") or "—"
     risk_score  = incident.get("risk_score", 0)
-    keywords    = incident.get("entities", {}).get("keywords", [])
-    top_keyword = keywords[0] if keywords else ""
 
-    lines = [
-        "⚠️ ALERTA HACKLATAM",
-        f"Tipo: {threat_type}",
-        f"Región: {region}",
-        f"Riesgo: {risk_score}/100",
-    ]
-    if top_keyword:
-        lines.append(top_keyword)
-    lines.append("hacklatam.vercel.app")
+    message = (
+        f"HackLatam Alerta: Se detecto {threat_type} en "
+        f"{region} con riesgo {risk_score}/100. "
+        f"Verifica en hacklatam.vercel.app"
+    )
 
-    await send_whatsapp_alert(settings.alert_phone, "\n".join(lines))
+    await send_whatsapp_alert(settings.alert_phone, message)
