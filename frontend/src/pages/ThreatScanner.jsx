@@ -1,27 +1,29 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Upload, Link, FileText, Mic, ChevronRight, AlertOctagon, ShieldAlert } from 'lucide-react'
 import { analyzeContent } from '../lib/api'
+import { useLang } from '../lib/LanguageContext'
 
 const TABS = [
-  { id: 'image', label: 'Image',  icon: Upload   },
-  { id: 'url',   label: 'URL',    icon: Link     },
-  { id: 'text',  label: 'Text',   icon: FileText },
-  { id: 'audio', label: 'Audio',  icon: Mic      },
+  { id: 'image', i18nKey: 'scanner.tab.image', icon: Upload   },
+  { id: 'url',   i18nKey: 'scanner.tab.url',   icon: Link     },
+  { id: 'text',  i18nKey: 'scanner.tab.text',  icon: FileText },
+  { id: 'audio', i18nKey: 'scanner.tab.audio', icon: Mic      },
 ]
 
-const LOG_LINES = [
-  { t: 0,    text: '» Initializing analysis pipeline...',                      color: 'neutral' },
-  { t: 400,  text: '» Extracting content features...',                         color: 'neutral' },
-  { t: 800,  text: '» Running Mistral OCR scan...',                            color: 'neutral' },
-  { t: 1300, text: '» Classifying threat vectors [urgency / authority / coercion]...', color: 'neutral' },
-  { t: 1900, text: '» Computing semantic embedding (1536-dim)...',              color: 'neutral' },
-  { t: 2400, text: '» Querying pgvector similarity index...',                  color: 'neutral' },
-  { t: 2900, text: '  ✓ Similar incidents found in region.',                   color: 'amber'   },
-  { t: 3300, text: '» Computing final risk score...',                          color: 'neutral' },
-  { t: 3700, text: '  ✓ Analysis complete.',                                   color: 'red'     },
+// Timing is language-independent; text is resolved via t() at runtime
+const LOG_TIMING = [
+  { ms: 0,    key: 'log.init',     color: 'neutral' },
+  { ms: 400,  key: 'log.features', color: 'neutral' },
+  { ms: 800,  key: 'log.ocr',      color: 'neutral' },
+  { ms: 1300, key: 'log.classify', color: 'neutral' },
+  { ms: 1900, key: 'log.embed',    color: 'neutral' },
+  { ms: 2400, key: 'log.pgvector', color: 'neutral' },
+  { ms: 2900, key: 'log.similar',  color: 'amber'   },
+  { ms: 3300, key: 'log.score',    color: 'neutral' },
+  { ms: 3700, key: 'log.done',     color: 'red'     },
 ]
 
-const ANIMATION_DURATION = LOG_LINES.at(-1).t + 400
+const ANIMATION_DURATION = LOG_TIMING.at(-1).ms + 400
 
 const DEMO_CONTENT = {
   image: '[screenshot: bbva-verificacion.mx login form]',
@@ -34,9 +36,9 @@ const MOCK_RESULT = {
   score:    88,
   category: 'phishing',
   vectors: [
-    { name: 'Authority Impersonation', value: 91 },
-    { name: 'Urgency',                 value: 82 },
-    { name: 'Coercion',                value: 65 },
+    { name: 'report.authority', value: 91 },
+    { name: 'report.urgency',   value: 82 },
+    { name: 'report.coercion',  value: 65 },
   ],
   entities: {
     phone:    '+52 614-822-5511',
@@ -50,7 +52,7 @@ const MOCK_RESULT = {
     'Bloquea el número remitente',
   ],
   similar: 34,
-  region:   'Chihuahua',
+  region:  'Chihuahua',
 }
 
 function mapApiResult(api) {
@@ -59,9 +61,9 @@ function mapApiResult(api) {
     score:    api.risk_score ?? 0,
     category: api.threat_type ?? 'unknown',
     vectors: [
-      { name: 'Authority Impersonation', value: api.authority_score ?? 0 },
-      { name: 'Urgency',                 value: api.urgency_score   ?? 0 },
-      { name: 'Coercion',                value: api.coercion_score  ?? 0 },
+      { name: 'report.authority', value: api.authority_score ?? 0 },
+      { name: 'report.urgency',   value: api.urgency_score   ?? 0 },
+      { name: 'report.coercion',  value: api.coercion_score  ?? 0 },
     ],
     entities: {
       phone:    api.entities?.phones?.[0]   ?? '—',
@@ -81,6 +83,7 @@ function scoreColor(s) {
 }
 
 function CircularScore({ score }) {
+  const { t } = useLang()
   const r = 38
   const circ = 2 * Math.PI * r
   const offset = circ - (score / 100) * circ
@@ -100,18 +103,19 @@ function CircularScore({ score }) {
       </svg>
       <div className="relative flex flex-col items-center leading-none">
         <span className="font-mono text-[28px] font-bold" style={{ color }}>{score}</span>
-        <span className="text-[9px] text-neutral-500 uppercase tracking-widest mt-0.5">risk</span>
+        <span className="text-[9px] text-neutral-500 uppercase tracking-widest mt-0.5">{t('report.risk')}</span>
       </div>
     </div>
   )
 }
 
 function VectorBar({ name, value }) {
+  const { t } = useLang()
   const color = value >= 80 ? '#ef4444' : value >= 60 ? '#f59e0b' : '#6b7280'
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[11px] text-neutral-400">{name}</span>
+        <span className="text-[11px] text-neutral-400">{t(name)}</span>
         <span className="text-[11px] font-mono" style={{ color }}>{value}%</span>
       </div>
       <div className="h-[3px] bg-[#222] rounded-full overflow-hidden">
@@ -139,7 +143,7 @@ function TerminalLog({ lines }) {
       {lines.map((l, i) => (
         <div key={i} className={`leading-relaxed ${colorClass(l.color)}`}>{l.text}</div>
       ))}
-      {lines.length > 0 && lines.length < LOG_LINES.length && (
+      {lines.length > 0 && lines.length < LOG_TIMING.length && (
         <span className="text-neutral-600 animate-pulse">▌</span>
       )}
       <div ref={endRef} />
@@ -148,6 +152,7 @@ function TerminalLog({ lines }) {
 }
 
 function AnalyzingPanel() {
+  const { t } = useLang()
   return (
     <div className="flex flex-col items-center justify-center gap-4 px-2 w-full" style={{ minHeight: 400, height: '100%' }}>
       <div style={{ color: '#ffc174', width: 80, height: 80 }}>
@@ -302,13 +307,14 @@ function AnalyzingPanel() {
         </svg>
       </div>
       <p style={{ fontSize: 13, color: '#a08e7a', fontFamily: 'monospace' }}>
-        Analizando amenaza...
+        {t('scanner.analyzing')}
       </p>
     </div>
   )
 }
 
 export default function ThreatScanner() {
+  const { t } = useLang()
   const [activeTab, setActiveTab] = useState('url')
   const [content, setContent]     = useState('')
   const [fileName, setFileName]   = useState(null)
@@ -331,9 +337,9 @@ export default function ThreatScanner() {
     setLogLines([])
     setResult(null)
 
-    // Start terminal animation
-    LOG_LINES.forEach(({ t, text: line, color }) => {
-      setTimeout(() => setLogLines((prev) => [...prev, { text: line, color }]), t)
+    // Start terminal animation with translated log lines
+    LOG_TIMING.forEach(({ ms, key, color }) => {
+      setTimeout(() => setLogLines((prev) => [...prev, { text: t(key), color }]), ms)
     })
 
     // Build FormData for API
@@ -362,7 +368,7 @@ export default function ThreatScanner() {
       setResult(mapped ?? MOCK_RESULT)
       setState('done')
     })
-  }, [activeTab, content])
+  }, [activeTab, content, t])
 
   const handleDemo = () => {
     const demoContent = DEMO_CONTENT[activeTab]
@@ -394,15 +400,15 @@ export default function ThreatScanner() {
       {/* Left panel */}
       <div className="flex-1 flex flex-col p-5 gap-3 min-w-0 border-r border-[#262626]">
         <div>
-          <h1 className="text-sm font-semibold text-neutral-200">Threat Scanner</h1>
+          <h1 className="text-sm font-semibold text-neutral-200">{t('scanner.title')}</h1>
           <p className="text-[11px] text-neutral-500 mt-0.5">
-            Analyze URLs, screenshots, emails, and audio for phishing indicators
+            {t('scanner.subtitle')}
           </p>
         </div>
 
         {/* Tabs */}
         <div className="flex gap-1 border-b border-[#262626] pb-0">
-          {TABS.map(({ id, label, icon: Icon }) => (
+          {TABS.map(({ id, i18nKey, icon: Icon }) => (
             <button
               key={id}
               onClick={() => {
@@ -421,7 +427,7 @@ export default function ThreatScanner() {
               }`}
             >
               <Icon size={12} strokeWidth={2} />
-              {label}
+              {t(i18nKey)}
             </button>
           ))}
         </div>
@@ -449,8 +455,8 @@ export default function ThreatScanner() {
                   <>
                     <Upload size={20} className="text-neutral-600" strokeWidth={1.5} />
                     <p className="text-[12px] text-neutral-500 text-center">
-                      Drop {activeTab === 'image' ? 'screenshot or image' : 'audio file'} here<br />
-                      <span className="text-neutral-600">or click to browse</span>
+                      {activeTab === 'image' ? t('scanner.drop.image') : t('scanner.drop.audio')}<br />
+                      <span className="text-neutral-600">{t('scanner.drop.browse')}</span>
                     </p>
                   </>
                 )}
@@ -462,14 +468,14 @@ export default function ThreatScanner() {
                     type="text"
                     value={content ?? ''}
                     onChange={(e) => setContent(e.target.value)}
-                    placeholder="https://suspicious-link.mx/..."
+                    placeholder={t('scanner.placeholder.url')}
                     className="w-full bg-[#1c1b1b] border border-[#262626] rounded px-3 py-2.5 text-[12px] font-mono text-neutral-200 placeholder-neutral-600 outline-none focus:border-[#383838]"
                   />
                 ) : (
                   <textarea
                     value={content ?? ''}
                     onChange={(e) => setContent(e.target.value)}
-                    placeholder="Paste suspicious message, email body, or SMS..."
+                    placeholder={t('scanner.placeholder.text')}
                     rows={5}
                     className="w-full bg-[#1c1b1b] border border-[#262626] rounded px-3 py-2.5 text-[12px] font-mono text-neutral-200 placeholder-neutral-600 outline-none focus:border-[#383838] resize-none"
                   />
@@ -483,13 +489,13 @@ export default function ThreatScanner() {
                 onClick={() => runAnalysis()}
                 className="flex items-center gap-1.5 bg-amber-400 text-[#131313] text-[12px] font-semibold px-4 py-2 rounded disabled:opacity-30 hover:bg-amber-300 transition-colors"
               >
-                Analyze <ChevronRight size={13} />
+                {t('scanner.analyze')} <ChevronRight size={13} />
               </button>
               <button
                 onClick={handleDemo}
                 className="text-[11px] text-neutral-500 hover:text-neutral-300 transition-colors px-2 py-2"
               >
-                Try demo →
+                {t('scanner.demo')}
               </button>
             </div>
           </div>
@@ -500,14 +506,14 @@ export default function ThreatScanner() {
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <span className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono">
-                Analysis Log
+                {t('scanner.log')}
               </span>
               {state === 'done' && (
                 <button
                   onClick={resetScan}
                   className="text-[10px] text-neutral-600 hover:text-neutral-400 transition-colors"
                 >
-                  ← New scan
+                  {t('scanner.newScan')}
                 </button>
               )}
             </div>
@@ -522,7 +528,7 @@ export default function ThreatScanner() {
           <div className="flex flex-col items-center justify-center h-full text-center gap-3">
             <ShieldAlert size={28} className="text-neutral-700" strokeWidth={1} />
             <p className="text-[12px] text-neutral-600">
-              Submit content to generate<br />threat assessment
+              {t('scanner.empty1')}<br />{t('scanner.empty2')}
             </p>
           </div>
         ) : state === 'analyzing' ? (
@@ -534,13 +540,13 @@ export default function ThreatScanner() {
               <CircularScore score={display.score} />
               <div>
                 <p className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono mb-1">
-                  Classification
+                  {t('report.classification')}
                 </p>
                 <span className="text-[11px] font-semibold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded uppercase tracking-widest">
                   {display.category}
                 </span>
                 <p className="text-[11px] text-neutral-500 font-mono mt-2">
-                  {display.similar} similar · {display.region}
+                  {display.similar} {t('report.similar')} · {display.region}
                 </p>
               </div>
             </div>
@@ -550,10 +556,9 @@ export default function ThreatScanner() {
               <div className="rounded border border-red-500/25 bg-red-500/5 p-3 flex gap-2.5">
                 <AlertOctagon size={15} className="text-red-400 shrink-0 mt-0.5" strokeWidth={1.5} />
                 <div>
-                  <p className="text-[12px] font-semibold text-red-400">Pausa.</p>
+                  <p className="text-[12px] font-semibold text-red-400">{t('panic.title')}</p>
                   <p className="text-[11px] text-neutral-400 mt-0.5 leading-relaxed">
-                    No transfieras dinero. No compartas contraseñas.<br />
-                    Llama directamente a tu banco.
+                    {t('panic.body')}<br />{t('panic.call')}
                   </p>
                 </div>
               </div>
@@ -562,7 +567,7 @@ export default function ThreatScanner() {
             {/* Psychological Vectors */}
             <div className="card-base p-4">
               <p className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono mb-3">
-                Psychological Vectors
+                {t('report.vectors')}
               </p>
               <div className="flex flex-col gap-3">
                 {display.vectors.map((v) => <VectorBar key={v.name} {...v} />)}
@@ -572,24 +577,24 @@ export default function ThreatScanner() {
             {/* Entities */}
             <div className="card-base p-4">
               <p className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono mb-3">
-                Entities Extracted
+                {t('report.entities')}
               </p>
               <div className="flex flex-col gap-2 font-mono text-[11px]">
                 {display.entities.phone !== '—' && (
                   <div className="flex gap-2">
-                    <span className="text-neutral-600 shrink-0">phone</span>
+                    <span className="text-neutral-600 shrink-0">{t('report.phone')}</span>
                     <span className="text-amber-400">{display.entities.phone}</span>
                   </div>
                 )}
                 {display.entities.domain !== '—' && (
                   <div className="flex gap-2">
-                    <span className="text-neutral-600 shrink-0">domain</span>
+                    <span className="text-neutral-600 shrink-0">{t('report.domain')}</span>
                     <span className="text-red-400 break-all">{display.entities.domain}</span>
                   </div>
                 )}
                 {display.entities.keywords.length > 0 && (
                   <div className="flex gap-2 flex-wrap">
-                    <span className="text-neutral-600 shrink-0">tags</span>
+                    <span className="text-neutral-600 shrink-0">{t('report.tags')}</span>
                     <div className="flex flex-wrap gap-1">
                       {display.entities.keywords.map((k) => (
                         <span key={k} className="bg-[#222] border border-[#2a2a2a] text-neutral-400 px-1.5 py-0.5 rounded text-[10px]">
@@ -605,7 +610,7 @@ export default function ThreatScanner() {
             {/* Recommended Actions */}
             <div className="card-base p-4">
               <p className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono mb-3">
-                Recommended Actions
+                {t('report.actions')}
               </p>
               <ul className="flex flex-col gap-2">
                 {display.actions.map((a, i) => (
@@ -618,7 +623,7 @@ export default function ThreatScanner() {
             </div>
 
             <p className="text-center text-[11px] text-neutral-600 font-mono">
-              {display.similar} casos similares detectados en {display.region}
+              {display.similar} {t('report.casesIn')} {display.region}
             </p>
           </>
         )}

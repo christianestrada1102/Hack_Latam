@@ -1,35 +1,36 @@
 import { AlertOctagon, AlertTriangle, ChevronRight } from 'lucide-react'
+import { useLang } from '../lib/LanguageContext'
 
 const ALERTS = [
   {
     id: 'ALT-001',
-    level:      'critical',
-    title:      'WhatsApp Empleo Falso',
-    region:     'Chihuahua, MX',
-    score:      92,
-    type:       'smishing',
-    note:       '34 similar reports this week',
-    timestamp:  '2min ago',
+    level:     'critical',
+    title:     'WhatsApp Empleo Falso',
+    region:    'Chihuahua, MX',
+    score:     92,
+    type:      'smishing',
+    note:      '34 similar reports this week',
+    timestamp: '2min ago',
   },
   {
     id: 'ALT-002',
-    level:      'high',
-    title:      'BBVA Clone Phishing',
-    region:     'CDMX, MX',
-    score:      88,
-    type:       'phishing',
-    note:       '18 incidents in active campaign',
-    timestamp:  '5min ago',
+    level:     'high',
+    title:     'BBVA Clone Phishing',
+    region:    'CDMX, MX',
+    score:     88,
+    type:      'phishing',
+    note:      '18 incidents in active campaign',
+    timestamp: '5min ago',
   },
   {
     id: 'ALT-003',
-    level:      'high',
-    title:      'CFE Adeudo SMS',
-    region:     'Chihuahua, MX',
-    score:      78,
-    type:       'smishing',
-    note:       'Spike +142% in last hour',
-    timestamp:  '12min ago',
+    level:     'high',
+    title:     'CFE Adeudo SMS',
+    region:    'Chihuahua, MX',
+    score:     78,
+    type:      'smishing',
+    note:      'Spike +142% in last hour',
+    timestamp: '12min ago',
   },
 ]
 
@@ -55,6 +56,7 @@ function scoreColor(s) {
 }
 
 function AlertCard({ id, level, title, region, score, type, note, timestamp }) {
+  const { t } = useLang()
   const styles = LEVEL_STYLES[level]
   const Icon   = styles.icon
 
@@ -89,7 +91,7 @@ function AlertCard({ id, level, title, region, score, type, note, timestamp }) {
           {score}
         </span>
         <button className="flex items-center gap-1 text-[11px] text-neutral-500 hover:text-neutral-300 transition-colors">
-          View Details <ChevronRight size={11} />
+          {t('alerts.view')} <ChevronRight size={11} />
         </button>
       </div>
     </div>
@@ -97,17 +99,19 @@ function AlertCard({ id, level, title, region, score, type, note, timestamp }) {
 }
 
 export default function Alerts() {
+  const { t } = useLang()
+
   return (
     <div className="p-5">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-sm font-semibold text-neutral-200">Alerts</h1>
+          <h1 className="text-sm font-semibold text-neutral-200">{t('alerts.title')}</h1>
           <p className="text-[11px] text-neutral-500 mt-0.5">
-            High-confidence detections requiring immediate attention
+            {t('alerts.subtitle')}
           </p>
         </div>
         <span className="text-[11px] font-mono text-neutral-600">
-          {ALERTS.length} active
+          {ALERTS.length} {t('alerts.active')}
         </span>
       </div>
 

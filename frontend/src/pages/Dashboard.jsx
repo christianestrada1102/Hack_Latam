@@ -3,12 +3,14 @@ import 'leaflet/dist/leaflet.css'
 import { MapContainer, TileLayer, CircleMarker, Tooltip } from 'react-leaflet'
 import { Shield, Activity, AlertTriangle, TrendingUp } from 'lucide-react'
 import { getStats, getFeed } from '../lib/api'
+import { useLang } from '../lib/LanguageContext'
 
-const SEED_METRICS = [
-  { label: 'Threats Detected (24H)', value: '142', icon: Shield,        delta: '+12', up: true  },
-  { label: 'Active Campaigns',       value: '12',  icon: Activity,      delta: '+3',  up: true  },
-  { label: 'Regional Alerts',        value: '8',   icon: AlertTriangle, delta: '-1',  up: false },
-  { label: 'Avg Risk Score',         value: '67.3', icon: TrendingUp,   delta: '+2.1', up: true },
+// Metric definitions — i18nKey drives the label, seedValue is the pre-API placeholder
+const METRIC_DEFS = [
+  { id: 'threats24h', i18nKey: 'dash.threats24h', statsField: 'total_24h',        seedValue: '142',  icon: Shield,        delta: '+12',  up: true  },
+  { id: 'campaigns',  i18nKey: 'dash.campaigns',  statsField: 'active_campaigns',  seedValue: '12',   icon: Activity,      delta: '+3',   up: true  },
+  { id: 'regional',   i18nKey: 'dash.regional',   statsField: 'regional_alerts',   seedValue: '8',    icon: AlertTriangle, delta: '-1',   up: false },
+  { id: 'avgRisk',    i18nKey: 'dash.avgRisk',    statsField: 'avg_risk_score',    seedValue: '67.3', icon: TrendingUp,    delta: '+2.1', up: true  },
 ]
 
 const SEED_INCIDENTS = [
@@ -54,6 +56,7 @@ function relativeTime(isoString) {
 }
 
 function MetricCard({ label, value, icon: Icon, delta, up }) {
+  const { t } = useLang()
   return (
     <div className="card-base p-4">
       <div className="flex items-start justify-between mb-3">
@@ -64,7 +67,7 @@ function MetricCard({ label, value, icon: Icon, delta, up }) {
       </div>
       <p className="text-[26px] font-semibold text-neutral-100 font-mono leading-none">{value}</p>
       <p className={`text-[11px] font-mono mt-2 ${up ? 'text-amber-400' : 'text-emerald-500'}`}>
-        {delta} vs yesterday
+        {delta} {t('dash.vsYesterday')}
       </p>
     </div>
   )
@@ -105,7 +108,8 @@ function CampaignBar({ name, delta, pct }) {
 }
 
 export default function Dashboard() {
-  const [metrics, setMetrics]     = useState(SEED_METRICS)
+  const { t } = useLang()
+  const [apiStats, setApiStats]   = useState(null)
   const [incidents, setIncidents] = useState(SEED_INCIDENTS)
   const [loading, setLoading]     = useState(true)
 
@@ -113,21 +117,10 @@ export default function Dashboard() {
     let cancelled = false
 
     async function load() {
-      const [stats, feed] = await Promise.all([
-        getStats(),
-        getFeed({ limit: 6 }),
-      ])
-
+      const [stats, feed] = await Promise.all([getStats(), getFeed({ limit: 6 })])
       if (cancelled) return
 
-      if (stats) {
-        setMetrics([
-          { label: 'Threats Detected (24H)', value: String(stats.total_24h),          icon: Shield,        delta: '+12', up: true  },
-          { label: 'Active Campaigns',       value: String(stats.active_campaigns),    icon: Activity,      delta: '+3',  up: true  },
-          { label: 'Regional Alerts',        value: String(stats.regional_alerts),     icon: AlertTriangle, delta: '-1',  up: false },
-          { label: 'Avg Risk Score',         value: (stats.avg_risk_score ?? 0).toFixed(1), icon: TrendingUp, delta: '+2.1', up: true },
-        ])
-      }
+      if (stats) setApiStats(stats)
 
       if (feed && feed.length > 0) {
         setIncidents(
@@ -149,17 +142,30 @@ export default function Dashboard() {
     return () => { cancelled = true }
   }, [])
 
+  const metrics = METRIC_DEFS.map((def) => {
+    let value = def.seedValue
+    if (!loading && apiStats) {
+      value = def.id === 'avgRisk'
+        ? (apiStats[def.statsField] ?? 0).toFixed(1)
+        : String(apiStats[def.statsField] ?? def.seedValue)
+    }
+    return {
+      id:    def.id,
+      label: t(def.i18nKey),
+      value: loading ? '…' : value,
+      icon:  def.icon,
+      delta: def.delta,
+      up:    def.up,
+    }
+  })
+
+  const totalIncidents = MAP_POINTS.reduce((a, p) => a + p.incidents, 0)
+
   return (
     <div className="p-5 flex flex-col gap-3">
       {/* Metrics */}
       <div className="grid grid-cols-4 gap-3">
-        {metrics.map((m) => (
-          <MetricCard
-            key={m.label}
-            {...m}
-            value={loading ? '…' : m.value}
-          />
-        ))}
+        {metrics.map((m) => <MetricCard key={m.id} {...m} />)}
       </div>
 
       {/* Feed + Map */}
@@ -168,11 +174,11 @@ export default function Dashboard() {
         <div className="w-60 shrink-0 flex flex-col gap-0 overflow-y-auto">
           <div className="flex items-center justify-between px-0.5 mb-2 shrink-0">
             <span className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono">
-              Live Feed
+              {t('dash.liveFeed')}
             </span>
             <span className="text-[10px] font-mono text-amber-400 flex items-center gap-1">
               <span className="live-pulse inline-block w-1.5 h-1.5 rounded-full bg-amber-400" />
-              live
+              {t('dash.live')}
             </span>
           </div>
           <div className="flex flex-col gap-1.5">
@@ -184,10 +190,10 @@ export default function Dashboard() {
         <div className="flex-1 card-base flex flex-col overflow-hidden">
           <div className="px-3 py-2 border-b border-[#262626] shrink-0 flex items-center justify-between">
             <span className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono">
-              Threat Map — LATAM
+              {t('dash.threatMap')}
             </span>
             <span className="text-[10px] font-mono text-neutral-600">
-              {MAP_POINTS.reduce((a, p) => a + p.incidents, 0)} incidents mapped
+              {totalIncidents} {t('dash.incidentsMapped')}
             </span>
           </div>
           <div className="flex-1 min-h-0">
@@ -215,7 +221,7 @@ export default function Dashboard() {
                   <Tooltip direction="top" offset={[0, -p.r]}>
                     <div style={{ fontFamily: 'monospace', fontSize: 11, background: '#1c1b1b', color: '#e5e5e5', padding: '4px 8px', border: '1px solid #262626' }}>
                       <strong>{p.city}</strong><br />
-                      {p.incidents} incidents
+                      {p.incidents} {t('dash.incidents')}
                     </div>
                   </Tooltip>
                 </CircleMarker>
@@ -228,7 +234,7 @@ export default function Dashboard() {
       {/* Trending Campaigns */}
       <div className="card-base p-3.5">
         <p className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono mb-3">
-          Trending Campaigns
+          {t('dash.trending')}
         </p>
         <div className="flex gap-5">
           {CAMPAIGNS.map((c) => <CampaignBar key={c.name} {...c} />)}
