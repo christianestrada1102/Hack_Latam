@@ -159,7 +159,11 @@ export default function ThreatScanner() {
   const fileRef    = useRef(null)
   const fileObjRef = useRef(null)
 
-  const runAnalysis = useCallback(() => {
+  // contentOverride lets handleDemo pass the value directly,
+  // avoiding stale-closure issues with queued state updates.
+  const runAnalysis = useCallback((contentOverride) => {
+    const resolvedContent = contentOverride ?? content
+
     setState('analyzing')
     setLogLines([])
     setResult(null)
@@ -172,12 +176,11 @@ export default function ThreatScanner() {
     // Build FormData for API
     const formData = new FormData()
     if (fileObjRef.current) {
-      const field = activeTab === 'image' ? 'file' : 'file'
-      formData.append(field, fileObjRef.current)
+      formData.append('file', fileObjRef.current)
     } else if (activeTab === 'url') {
-      formData.append('url', content.trim())
+      formData.append('url', resolvedContent.trim())
     } else {
-      formData.append('text', content.trim())
+      formData.append('text', resolvedContent.trim())
     }
 
     // Race: animation vs API — show done when both finish
@@ -197,9 +200,10 @@ export default function ThreatScanner() {
   }, [activeTab, content])
 
   const handleDemo = () => {
-    setContent(DEMO_CONTENT[activeTab])
+    const demoContent = DEMO_CONTENT[activeTab]
+    setContent(demoContent)
     fileObjRef.current = null
-    setTimeout(runAnalysis, 200)
+    runAnalysis(demoContent)
   }
 
   const handleFile = (file) => {
