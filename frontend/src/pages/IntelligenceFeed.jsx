@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { Filter, Download, ChevronLeft, ChevronRight, Search, X, Phone, Globe, Tag, GitBranch } from 'lucide-react'
 import { getFeed } from '../lib/api'
 import { useLang } from '../lib/LanguageContext'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 const PAGE_SIZE = 20
 
@@ -301,6 +302,7 @@ function IncidentRow({ inc, isSelected, onClick }) {
 export default function IntelligenceFeed() {
   const { t } = useLang()
   const [incidents, setIncidents]   = useState([])
+  const [loading, setLoading]       = useState(true)
   const [search, setSearch]         = useState('')
   const [filters, setFilters]       = useState({ region: '', type: '', risk: 'all' })
   const [selectedId, setSelectedId] = useState(null)
@@ -339,12 +341,14 @@ export default function IntelligenceFeed() {
 
   useEffect(() => {
     let cancelled = false
+    setLoading(true)
     const load = () => {
       getFeed(apiFilters).then((data) => {
-        if (cancelled || !data) return
-        setIncidents(data.map(mapApiIncident))
+        if (cancelled) return
+        setIncidents(data ? data.map(mapApiIncident) : [])
         setPage(0)
         setSelectedId(null)
+        setLoading(false)
       })
     }
     load()
@@ -404,7 +408,11 @@ export default function IntelligenceFeed() {
 
         {/* Rows */}
         <div className="flex-1 overflow-y-auto">
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center h-48">
+              <LoadingSpinner message="Cargando incidentes..." />
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="flex items-center justify-center h-32 text-[12px] text-neutral-600">
               {t('intel.noMatch')}
             </div>

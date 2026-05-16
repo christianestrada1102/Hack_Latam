@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { AlertOctagon, AlertTriangle, ChevronDown, ChevronUp, Phone, Globe } from 'lucide-react'
 import { getAlerts } from '../lib/api'
 import { useLang } from '../lib/LanguageContext'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 const LEVEL_STYLES = {
   critical: {
@@ -257,7 +258,9 @@ export default function Alerts() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-32 text-[12px] text-neutral-600">…</div>
+        <div className="flex items-center justify-center h-48">
+          <LoadingSpinner message="Cargando alertas..." />
+        </div>
       ) : filtered.length === 0 ? (
         <div className="flex items-center justify-center h-32 text-[12px] text-neutral-600">
           {t('alerts.empty')}

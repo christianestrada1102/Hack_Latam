@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, CircleMarker, Tooltip } from 'react-leaflet'
 import { Shield, Activity, AlertTriangle, TrendingUp } from 'lucide-react'
 import { getStats, getFeed, getCampaigns } from '../lib/api'
 import { useLang } from '../lib/LanguageContext'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 const METRIC_DEFS = [
   { id: 'threats24h', i18nKey: 'dash.threats24h', statsField: 'total_24h',       icon: Shield        },
@@ -202,8 +203,11 @@ export default function Dashboard() {
             </span>
           </div>
           {feedItems.length === 0 ? (
-            <div className="flex items-center justify-center h-32 text-[12px] text-neutral-600">
-              {loading ? '…' : t('dash.noData')}
+            <div className="flex items-center justify-center h-32">
+              {loading
+                ? <LoadingSpinner message="Cargando inteligencia..." />
+                : <span className="text-[12px] text-neutral-600">{t('dash.noData')}</span>
+              }
             </div>
           ) : (
             <div className="flex flex-col gap-1.5">
@@ -263,7 +267,12 @@ export default function Dashboard() {
           {t('dash.trending')}
         </p>
         {topCampaigns.length === 0 ? (
-          <p className="text-[11px] text-neutral-600">{loading ? '…' : t('dash.noData')}</p>
+          <div className="flex items-center justify-center h-16">
+            {loading
+              ? <LoadingSpinner message="Cargando inteligencia..." />
+              : <p className="text-[11px] text-neutral-600">{t('dash.noData')}</p>
+            }
+          </div>
         ) : (
           <div className="flex gap-5">
             {topCampaigns.map((c) => <CampaignBar key={c.name} {...c} />)}
