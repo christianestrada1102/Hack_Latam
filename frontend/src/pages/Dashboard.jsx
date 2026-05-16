@@ -36,14 +36,18 @@ function relativeTime(isoString) {
 
 function MetricCard({ label, value, icon: Icon }) {
   return (
-    <div className="card-base metric-card p-4">
-      <div className="flex items-start justify-between mb-3">
-        <span className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono leading-tight">
+    <div className="card-base metric-card overflow-hidden">
+      <div className="stat px-4 py-3 gap-1">
+        <div className="stat-figure text-neutral-700">
+          <Icon size={15} strokeWidth={1.5} />
+        </div>
+        <div className="stat-title text-[10px] uppercase tracking-widest font-mono text-neutral-500 !opacity-100 leading-tight">
           {label}
-        </span>
-        <Icon size={13} className="text-neutral-700 shrink-0 mt-0.5" strokeWidth={1.5} />
+        </div>
+        <div className="stat-value font-mono font-semibold text-neutral-100 leading-none">
+          {value}
+        </div>
       </div>
-      <p className="text-[26px] font-semibold text-neutral-100 font-mono leading-none">{value}</p>
     </div>
   )
 }

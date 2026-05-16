@@ -98,7 +98,9 @@ function AlertCard({ alert, expanded, onToggle }) {
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className={`text-[9px] uppercase tracking-widest font-medium border px-1.5 py-0.5 rounded ${styles.badge}`}>
+            <span className={`badge badge-xs uppercase tracking-widest font-mono font-medium ${
+              alert.level === 'critical' ? 'badge-error' : 'badge-warning'
+            }`}>
               {alert.level === 'critical' ? t('alerts.critical') : 'HIGH'}
             </span>
             <span className="text-[9px] uppercase tracking-wider text-neutral-600 border border-[#2a2a2a] px-1.5 py-0.5 rounded">
@@ -247,15 +249,13 @@ export default function Alerts() {
           <h1 className="text-sm font-semibold text-neutral-200">{t('alerts.title')}</h1>
           <p className="text-[11px] text-neutral-500 mt-0.5">{t('alerts.subtitle')}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {FILTER_VALUES.map((v) => (
             <button
               key={v}
               onClick={() => setFilter(v)}
-              className={`text-[10px] font-mono uppercase tracking-widest px-2.5 py-1 rounded border transition-colors ${
-                filter === v
-                  ? 'border-amber-400/40 text-amber-400 bg-amber-400/5'
-                  : 'border-[#2a2a2a] text-neutral-600 hover:text-neutral-400'
+              className={`btn btn-xs font-mono uppercase tracking-widest ${
+                filter === v ? 'btn-warning text-[#131313]' : 'btn-ghost text-neutral-500 hover:text-neutral-200'
               }`}
             >
               {filterLabels[v]}
