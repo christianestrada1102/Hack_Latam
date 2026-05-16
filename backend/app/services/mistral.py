@@ -52,7 +52,8 @@ _EMOTIONAL_SCHEMA = """\
 def _or_headers() -> dict:
     return {
         "Authorization": f"Bearer {settings.openrouter_api_key}",
-        "HTTP-Referer":  "https://hacklatam.app",
+        "Content-Type":  "application/json",
+        "HTTP-Referer":  "http://localhost:5173",
         "X-Title":       "HackLatam",
     }
 
@@ -84,14 +85,24 @@ def _empty_analysis() -> dict:
 
 
 async def _or_chat(model: str, messages: list, timeout: int = 30) -> str:
+    payload = {"model": model, "messages": messages, "temperature": 0.1}
+    print(f"[OpenRouter] POST {_OPENROUTER_BASE}/chat/completions")
+    print(f"[OpenRouter] model={model}")
+    print(f"[OpenRouter] payload={json.dumps(payload, ensure_ascii=False)[:2000]}")
+
     async with httpx.AsyncClient(timeout=timeout) as client:
         resp = await client.post(
             f"{_OPENROUTER_BASE}/chat/completions",
             headers=_or_headers(),
-            json={"model": model, "messages": messages, "temperature": 0.1},
+            json=payload,
         )
+
+    print(f"[OpenRouter] status={resp.status_code}")
+    if resp.status_code != 200:
+        print(f"[OpenRouter] error body={resp.text}")
         resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"]
+
+    return resp.json()["choices"][0]["message"]["content"]
 
 
 # ── Image analysis (Pixtral vision) ───────────────────────────────────────────
