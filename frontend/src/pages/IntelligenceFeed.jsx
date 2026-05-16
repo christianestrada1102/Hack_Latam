@@ -1,4 +1,6 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import gsap from 'gsap'
+import { useGSAP } from '@gsap/react'
 import { Filter, Download, ChevronLeft, ChevronRight, Search, X, Phone, Globe, Tag, GitBranch } from 'lucide-react'
 import { getFeed } from '../lib/api'
 import { useLang } from '../lib/LanguageContext'
@@ -274,7 +276,7 @@ function IncidentRow({ inc, isSelected, onClick }) {
   return (
     <div
       onClick={onClick}
-      className={`grid grid-cols-[60px_60px_88px_1fr_115px_52px] px-4 py-3 border-b border-[#1e1e1e] items-center cursor-pointer transition-colors ${
+      className={`feed-row grid grid-cols-[60px_60px_88px_1fr_115px_52px] px-4 py-3 border-b border-[#1e1e1e] items-center cursor-pointer transition-colors ${
         isSelected ? 'bg-[#1f1e1d]' : 'hover:bg-[#191919]'
       }`}
     >
@@ -307,6 +309,8 @@ export default function IntelligenceFeed() {
   const [filters, setFilters]       = useState({ region: '', type: '', risk: 'all' })
   const [selectedId, setSelectedId] = useState(null)
   const [page, setPage]             = useState(0)
+
+  const tableBodyRef = useRef(null)
 
   const setFilter = (k, v) => { setFilters((f) => ({ ...f, [k]: v })); setPage(0) }
 
@@ -365,6 +369,12 @@ export default function IntelligenceFeed() {
   const safePage = Math.min(page, pageCount - 1)
   const paginated = filtered.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE)
 
+  useGSAP(() => {
+    if (paginated.length > 0) {
+      gsap.from('.feed-row', { opacity: 0, duration: 0.3, stagger: 0.04 })
+    }
+  }, { scope: tableBodyRef, dependencies: [safePage, paginated.length] })
+
   const selectedInc = incidents.find((i) => i.id === selectedId) ?? null
 
   return (
@@ -407,7 +417,7 @@ export default function IntelligenceFeed() {
         </div>
 
         {/* Rows */}
-        <div className="flex-1 overflow-y-auto">
+        <div ref={tableBodyRef} className="flex-1 overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center h-48">
               <LoadingSpinner message="Cargando incidentes..." />
