@@ -3,7 +3,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import distinct, func, select
+from sqlalchemy import cast, distinct, func, or_, select, Text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -37,6 +37,62 @@ class StatsOut(BaseModel):
     top_threat_types: dict[str, int]
 
 
+class CampaignOut(BaseModel):
+    campaign_id: str
+    count: int
+    max_risk: int
+
+
+def _row_to_incident(inc) -> IncidentOut:
+    return IncidentOut(
+        id=str(inc.id),
+        created_at=inc.created_at,
+        threat_type=inc.threat_type,
+        region=inc.region,
+        risk_score=inc.risk_score,
+        emotional_pressure=inc.emotional_pressure,
+        urgency_score=inc.urgency_score,
+        coercion_score=inc.coercion_score,
+        authority_score=inc.authority_score,
+        entities=inc.entities,
+        similar_count=inc.similar_count,
+        campaign_id=inc.campaign_id,
+    )
+
+
+@router.get("/alerts", response_model=list[IncidentOut])
+async def list_alerts(db: AsyncSession = Depends(get_db)):
+    """Incidents with risk_score >= 75, ordered by risk score descending."""
+    q = (
+        select(Incident)
+        .where(Incident.risk_score >= 75)
+        .order_by(Incident.risk_score.desc())
+        .limit(50)
+    )
+    result = await db.execute(q)
+    return [_row_to_incident(inc) for inc in result.scalars().all()]
+
+
+@router.get("/campaigns", response_model=list[CampaignOut])
+async def list_campaigns(db: AsyncSession = Depends(get_db)):
+    """Top 10 campaigns by incident count."""
+    result = await db.execute(
+        select(
+            Incident.campaign_id,
+            func.count().label("count"),
+            func.max(Incident.risk_score).label("max_risk"),
+        )
+        .where(Incident.campaign_id.isnot(None))
+        .group_by(Incident.campaign_id)
+        .order_by(func.count().desc())
+        .limit(10)
+    )
+    return [
+        CampaignOut(campaign_id=r.campaign_id, count=r.count, max_risk=r.max_risk)
+        for r in result.all()
+    ]
+
+
 @router.get("/", response_model=list[IncidentOut])
 async def list_incidents(
     limit: int = Query(50, ge=1, le=200),
@@ -44,6 +100,7 @@ async def list_incidents(
     region: Optional[str] = Query(None, description="Filter by region substring"),
     threat_type: Optional[str] = Query(None, description="phishing|smishing|vishing|scam|malware"),
     min_risk: Optional[int] = Query(None, ge=0, le=100, description="Minimum risk score"),
+    search: Optional[str] = Query(None, description="Keyword search in threat_type, region, or entities"),
     db: AsyncSession = Depends(get_db),
 ):
     """Return latest incidents ordered by creation time, with optional filters."""
@@ -55,28 +112,18 @@ async def list_incidents(
         q = q.where(Incident.threat_type == threat_type)
     if min_risk is not None:
         q = q.where(Incident.risk_score >= min_risk)
+    if search:
+        q = q.where(
+            or_(
+                Incident.threat_type.ilike(f"%{search}%"),
+                Incident.region.ilike(f"%{search}%"),
+                cast(Incident.entities, Text).ilike(f"%{search}%"),
+            )
+        )
 
     q = q.offset(offset).limit(limit)
     result = await db.execute(q)
-    incidents = result.scalars().all()
-
-    return [
-        IncidentOut(
-            id=str(inc.id),
-            created_at=inc.created_at,
-            threat_type=inc.threat_type,
-            region=inc.region,
-            risk_score=inc.risk_score,
-            emotional_pressure=inc.emotional_pressure,
-            urgency_score=inc.urgency_score,
-            coercion_score=inc.coercion_score,
-            authority_score=inc.authority_score,
-            entities=inc.entities,
-            similar_count=inc.similar_count,
-            campaign_id=inc.campaign_id,
-        )
-        for inc in incidents
-    ]
+    return [_row_to_incident(inc) for inc in result.scalars().all()]
 
 
 @router.get("/stats", response_model=StatsOut)
