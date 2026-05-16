@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import gsap from 'gsap'
+import { useGSAP } from '@gsap/react'
 import { AlertOctagon, AlertTriangle, ChevronDown, ChevronUp, Phone, Globe } from 'lucide-react'
 import { getAlerts } from '../lib/api'
 import { useLang } from '../lib/LanguageContext'
@@ -90,7 +92,7 @@ function AlertCard({ alert, expanded, onToggle }) {
   const actions = ACTIONS_BY_TYPE[alert.type] ?? DEFAULT_ACTIONS
 
   return (
-    <div className={`bg-[#1c1b1b] border border-[#262626] border-l-2 ${styles.border} rounded overflow-hidden`}>
+    <div className={`alert-card bg-[#1c1b1b] border border-[#262626] border-l-2 ${styles.border} rounded overflow-hidden`}>
       <div className="p-4 flex items-start gap-4">
         <Icon size={16} strokeWidth={1.5} className="shrink-0 mt-0.5" style={{ color: styles.color }} />
 
@@ -209,6 +211,8 @@ export default function Alerts() {
   const [filter, setFilter]         = useState('all')
   const [expandedId, setExpandedId] = useState(null)
 
+  const alertsRef = useRef(null)
+
   useEffect(() => {
     let cancelled = false
     const load = async () => {
@@ -224,6 +228,12 @@ export default function Alerts() {
 
   const filtered = filter === 'all' ? alerts : alerts.filter((a) => a.level === filter)
 
+  useGSAP(() => {
+    if (filtered.length > 0) {
+      gsap.from('.alert-card', { opacity: 0, y: 30, duration: 0.4, stagger: 0.06 })
+    }
+  }, { scope: alertsRef, dependencies: [filter, filtered.length] })
+
   const filterLabels = {
     all:      t('alerts.filterAll'),
     critical: t('alerts.filterCritical'),
@@ -231,7 +241,7 @@ export default function Alerts() {
   }
 
   return (
-    <div className="p-5">
+    <div ref={alertsRef} className="p-5">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-sm font-semibold text-neutral-200">{t('alerts.title')}</h1>
