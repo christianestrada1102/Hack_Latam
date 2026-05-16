@@ -19,6 +19,7 @@ const GEOCODE = {
   'lima':          { lat: -12.0464, lng: -77.0428  },
   'buenos aires':  { lat: -34.6037, lng: -58.3816  },
   'são paulo':     { lat: -23.5505, lng: -46.6333  },
+  'mexico':        { lat: 19.4326,  lng: -99.1332  },
 }
 
 function geocodeRegion(region) {
@@ -67,7 +68,7 @@ export default function ThreatMap({ incidents = [] }) {
     <Map
       theme="dark"
       styles={{ dark: CARTO_DARK, light: CARTO_DARK }}
-      center={[-90, 15]}
+      center={[-85, 15]}
       zoom={3}
       scrollZoom={false}
     >
