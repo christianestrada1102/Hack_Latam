@@ -289,7 +289,7 @@ function TerminalLog({ lines }) {
   }
 
   return (
-    <div className="rounded border border-[#262626] bg-[#0a0a0a] p-3 font-mono text-[11px] h-36 overflow-y-auto">
+    <div className="rounded border border-[#262626] bg-[#0a0a0a] p-3 font-mono text-[11px] h-[200px] md:h-36 overflow-y-auto">
       {lines.map((l, i) => (
         <div key={i} className={`leading-relaxed ${colorClass(l.color)}`}>{l.text}</div>
       ))}
