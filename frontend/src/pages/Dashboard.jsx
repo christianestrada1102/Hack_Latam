@@ -199,6 +199,12 @@ export default function Dashboard() {
               {feedItems.map((inc) => <IncidentRow key={inc.id} {...inc} />)}
             </div>
           )}
+          {/* Mobile hint */}
+          {!loading && feedItems.length > 0 && (
+            <p className="md:hidden text-center mt-3 shrink-0" style={{ fontSize: 11, color: '#444' }}>
+              Mapa disponible en pantalla grande
+            </p>
+          )}
         </div>
 
         {/* Map — hidden on mobile */}
