@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, Link } from 'react-router-dom'
 import { LayoutDashboard, ScanSearch, Radio, Bell } from 'lucide-react'
 import { useLang } from '../lib/LanguageContext'
 
@@ -44,6 +44,14 @@ export default function Sidebar() {
       </nav>
 
       <div className="mt-auto px-2 pt-4 border-t border-[#262626]">
+        <Link
+          to="/"
+          style={{ fontSize: 11, color: '#444', textDecoration: 'none', display: 'block', marginBottom: 8, transition: 'color 200ms' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = '#a08e7a' }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = '#444' }}
+        >
+          ← Volver a HAVEN
+        </Link>
         <p style={{ fontFamily: 'OffBitTrial, monospace', fontSize: '10px', color: '#a08e7a', letterSpacing: '0.05em', whiteSpace: 'nowrap', overflow: 'hidden' }}>HAVEN · DEF/ACC · hack@latam 2026</p>
       </div>
     </aside>
