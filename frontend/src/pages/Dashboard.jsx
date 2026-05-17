@@ -226,7 +226,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-center h-16">
             {loading
               ? <LoadingSpinner message="Cargando inteligencia..." />
-              : <p className="text-[11px] text-neutral-600">{t('dash.noData')}</p>
+              : <p style={{ fontSize: '13px', color: '#444' }}>{t('dash.noCampaigns')}</p>
             }
           </div>
         ) : (

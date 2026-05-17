@@ -111,8 +111,9 @@ export const translations = {
     'alerts.campaign':      'Campaña',
 
     // Dashboard
-    'dash.noData':    'Sin datos',
-    'dash.noThreats': 'No hay amenazas registradas aún.',
+    'dash.noData':       'Sin datos',
+    'dash.noThreats':    'No hay amenazas registradas aún.',
+    'dash.noCampaigns':  'No hay campañas activas',
 
     // Intel additions
     'intel.search':           'Buscar amenazas...',
@@ -301,8 +302,9 @@ export const translations = {
     'alerts.campaign':      'Campaign',
 
     // Dashboard
-    'dash.noData':    'No data',
-    'dash.noThreats': 'No threats registered yet.',
+    'dash.noData':       'No data',
+    'dash.noThreats':    'No threats registered yet.',
+    'dash.noCampaigns':  'No active campaigns',
 
     // Intel additions
     'intel.search':           'Search threats...',
