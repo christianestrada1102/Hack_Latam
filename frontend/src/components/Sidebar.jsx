@@ -16,7 +16,7 @@ export default function Sidebar() {
     <aside className="flex flex-col w-56 min-h-screen bg-[#1c1b1b] border-r border-[#262626] px-3 py-5 shrink-0">
       <div className="px-2 mb-8">
         <span className="font-mono text-sm font-semibold tracking-widest text-amber-400 uppercase">
-          HackLatam
+          HAVEN
         </span>
         <p className="text-[10px] text-neutral-500 mt-0.5 font-mono">
           {t('nav.tagline')}

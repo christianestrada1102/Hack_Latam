@@ -6,7 +6,7 @@ export default function Header() {
   const { pathname } = useLocation()
   const { lang, toggle, t } = useLang()
   const normalizedPath = pathname.replace(/^\/app/, '') || '/'
-  const title = t(`page.${normalizedPath}`) || 'HackLatam'
+  const title = t(`page.${normalizedPath}`) || 'HAVEN'
 
   return (
     <header className="flex items-center justify-between px-6 h-12 border-b border-[#262626] bg-[#131313] shrink-0">

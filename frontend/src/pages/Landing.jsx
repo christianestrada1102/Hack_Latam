@@ -134,7 +134,7 @@ const Nav = ({ navRef }) => {
       transition: 'background .3s',
     }}>
       <Link to="/" style={{ fontFamily: HARMOND, fontWeight: 600, fontSize: 15, color: C.accent, letterSpacing: '0.12em', textDecoration: 'none' }}>
-        HACKLATAM
+        HAVEN
       </Link>
 
       <div style={{ display: 'flex', gap: 32, fontFamily: GEIST, fontSize: 13, color: C.muted }}>
@@ -865,7 +865,7 @@ function Footer() {
         </div>
       </div>
       <p style={{ fontFamily: GEIST, fontSize: 11, color: '#222', textAlign: 'center', paddingBottom: 16 }}>
-        HackLatam · DEF/ACC · hack@latam 2026
+        HAVEN · DEF/ACC · hack@latam 2025
       </p>
     </footer>
   )

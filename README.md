@@ -1,4 +1,4 @@
-# HackLatam — Civilian Threat Intelligence for LATAM
+# HAVEN — Civilian Threat Intelligence for LATAM
 
 > Real-time phishing and digital fraud detection system powered by AI, built for Latin America.
 
@@ -20,7 +20,7 @@ Latin America faces a **digital security crisis at scale**:
 
 ## The Solution
 
-**HackLatam** is a civilian-grade threat intelligence platform that:
+**HAVEN** is a civilian-grade threat intelligence platform that:
 
 1. **Scans and classifies** suspicious URLs, emails, screenshots, and audio messages using multimodal AI
 2. **Detects emotional manipulation** patterns used in social engineering attacks (urgency, fear, authority)
