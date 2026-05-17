@@ -170,12 +170,10 @@ function HeroSection({ stats, incidents }) {
       const coords = geocode(inc.region)
       if (!coords) return null
       return {
-        lat:      coords[0],
-        lng:      coords[1],
-        altitude: 0.01 + (inc.risk_score / 1000),
-        color:    inc.risk_score >= 80 ? '#ef4444cc' : '#ffc174cc',
-        radius:   0.3 + (inc.risk_score / 200),
-        label:    `<div style="font:11px monospace;background:#111;border:1px solid #262626;padding:6px 10px;border-radius:4px;color:#f0ede8;pointer-events:none">${inc.threat_type.toUpperCase()}<br/>${inc.region ?? '—'} · <span style="color:${scoreColor(inc.risk_score)}">${inc.risk_score}</span></div>`,
+        lat:   coords[0],
+        lng:   coords[1],
+        color: inc.risk_score >= 80 ? '#ef4444' : inc.risk_score >= 60 ? '#ffc174' : '#6b6560',
+        label: `<div style="font:11px monospace;background:#111;border:1px solid #262626;padding:6px 10px;border-radius:4px;color:#f0ede8;pointer-events:none">${inc.threat_type.toUpperCase()}<br/>${inc.region ?? '—'} · <span style="color:${scoreColor(inc.risk_score)}">${inc.risk_score}</span></div>`,
       }
     })
     .filter(Boolean), [incidents])
@@ -189,16 +187,28 @@ function HeroSection({ stats, incidents }) {
     g.width(el.offsetWidth || window.innerWidth)
       .height(el.offsetHeight || window.innerHeight)
       .backgroundColor('rgba(0,0,0,0)')
-      .showAtmosphere(false)
+      .showAtmosphere(true)
+      .atmosphereColor('#ffc174')
+      .atmosphereAltitude(0.12)
+      .showGraticules(true)
       .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
       .bumpImageUrl(null)
       .pointsData([])
-      .pointAltitude('altitude')
+      .pointAltitude(0)
+      .pointRadius(0.4)
       .pointColor('color')
-      .pointRadius('radius')
+      .pointsMerge(true)
       .pointLabel('label')
       .pointsTransitionDuration(1200)
+      .ringsData([])
+      .ringLat('lat')
+      .ringLng('lng')
+      .ringColor(() => '#ffc17460')
+      .ringMaxRadius(3)
+      .ringPropagationSpeed(1)
+      .ringRepeatPeriod(1500)
 
+    g.pointOfView({ lat: 10, lng: -75, altitude: 1.8 })
     g.controls().autoRotate      = true
     g.controls().autoRotateSpeed = 0.3
     g.controls().enableDamping   = true
@@ -207,22 +217,25 @@ function HeroSection({ stats, incidents }) {
 
     globeRef.current = g
 
-    // Stop autorotate on user drag, resume on release
-    const canvas = el.querySelector('canvas')
-    if (canvas) {
-      canvas.addEventListener('pointerdown', () => { g.controls().autoRotate = false })
-      canvas.addEventListener('pointerup',   () => { g.controls().autoRotate = true  })
-    }
+    const ro = new ResizeObserver(() => {
+      if (globeRef.current && el) {
+        globeRef.current.width(el.clientWidth).height(el.clientHeight)
+      }
+    })
+    ro.observe(el)
 
     return () => {
+      ro.disconnect()
       globeRef.current = null
       while (el.firstChild) el.removeChild(el.firstChild)
     }
   }, [])
 
-  // Update points
+  // Update points + rings
   useEffect(() => {
-    if (globeRef.current && points.length > 0) globeRef.current.pointsData(points)
+    if (globeRef.current && points.length > 0) {
+      globeRef.current.pointsData(points).ringsData(points)
+    }
   }, [points])
 
   // Intro animation: globe full-screen → right panel, content slides in
@@ -425,12 +438,17 @@ function ProblemSection() {
   )
 }
 
-// ─── Globe section (fixed height, no scroll pin) ──────────────────────────────
+// ─── Globe section (fixed height, responsive, no scroll hijack) ───────────────
 
 function GlobeSection({ incidents }) {
   const containerRef = useRef(null)
   const globeRef     = useRef(null)
   const [recent, setRecent] = useState([])
+  const [winW, setWinW]     = useState(() => window.innerWidth)
+
+  const isMobile = winW < 768
+  const isTablet = winW >= 768 && winW < 1024
+  const sidebarW = isMobile ? '100%' : isTablet ? '40%' : '35%'
 
   const points = useMemo(() => incidents
     .filter((i) => i.risk_score > 0 && i.threat_type !== 'unknown')
@@ -438,12 +456,10 @@ function GlobeSection({ incidents }) {
       const coords = geocode(inc.region)
       if (!coords) return null
       return {
-        lat:      coords[0],
-        lng:      coords[1],
-        altitude: 0.01 + (inc.risk_score / 1000),
-        color:    inc.risk_score >= 80 ? '#ef4444cc' : '#ffc174cc',
-        radius:   0.3 + (inc.risk_score / 200),
-        label:    `<div style="font:11px monospace;background:#111;border:1px solid #262626;padding:6px 10px;border-radius:4px;color:#f0ede8;pointer-events:none">${inc.threat_type.toUpperCase()}<br/>${inc.region ?? '—'} · <span style="color:${scoreColor(inc.risk_score)}">${inc.risk_score}</span></div>`,
+        lat:   coords[0],
+        lng:   coords[1],
+        color: inc.risk_score >= 80 ? '#ef4444' : inc.risk_score >= 60 ? '#ffc174' : '#6b6560',
+        label: `<div style="font:11px monospace;background:#111;border:1px solid #262626;padding:6px 10px;border-radius:4px;color:#f0ede8;pointer-events:none">${inc.threat_type.toUpperCase()}<br/>${inc.region ?? '—'} · <span style="color:${scoreColor(inc.risk_score)}">${inc.risk_score}</span></div>`,
       }
     })
     .filter(Boolean), [incidents])
@@ -453,6 +469,12 @@ function GlobeSection({ incidents }) {
   }, [incidents])
 
   useEffect(() => {
+    const fn = () => setWinW(window.innerWidth)
+    window.addEventListener('resize', fn, { passive: true })
+    return () => window.removeEventListener('resize', fn)
+  }, [])
+
+  useEffect(() => {
     const el = containerRef.current
     if (!el) return
 
@@ -460,40 +482,67 @@ function GlobeSection({ incidents }) {
     g.width(el.offsetWidth)
       .height(el.offsetHeight)
       .backgroundColor('rgba(0,0,0,0)')
-      .showAtmosphere(false)
+      .showAtmosphere(true)
+      .atmosphereColor('#ffc174')
+      .atmosphereAltitude(0.12)
+      .showGraticules(true)
       .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
       .bumpImageUrl(null)
       .pointsData([])
-      .pointAltitude('altitude')
+      .pointAltitude(0)
+      .pointRadius(0.4)
       .pointColor('color')
-      .pointRadius('radius')
+      .pointsMerge(true)
       .pointLabel('label')
       .pointsTransitionDuration(1200)
+      .ringsData([])
+      .ringLat('lat')
+      .ringLng('lng')
+      .ringColor(() => '#ffc17460')
+      .ringMaxRadius(3)
+      .ringPropagationSpeed(1)
+      .ringRepeatPeriod(1500)
 
+    g.pointOfView({ lat: 10, lng: -75, altitude: 1.8 })
     g.controls().autoRotate      = true
     g.controls().autoRotateSpeed = 0.3
     g.controls().enableZoom      = false
     globeRef.current = g
 
+    const ro = new ResizeObserver(() => {
+      if (globeRef.current && el) {
+        globeRef.current.width(el.clientWidth).height(el.clientHeight)
+      }
+    })
+    ro.observe(el)
+
     return () => {
+      ro.disconnect()
       globeRef.current = null
       while (el.firstChild) el.removeChild(el.firstChild)
     }
   }, [])
 
   useEffect(() => {
-    if (globeRef.current && points.length > 0) globeRef.current.pointsData(points)
+    if (globeRef.current && points.length > 0) {
+      globeRef.current.pointsData(points).ringsData(points)
+    }
   }, [points])
 
   return (
     <section style={{
-      position: 'relative', height: 700, overflow: 'hidden',
       background: C.bg, borderTop: `1px solid ${C.border}`,
+      display: 'flex',
+      flexDirection: isMobile ? 'column-reverse' : 'row',
+      height: isMobile ? 'auto' : 700,
+      overflow: 'hidden',
     }}>
-      {/* Left sidebar */}
+      {/* Sidebar */}
       <div style={{
-        position: 'absolute', left: 64, top: '50%', transform: 'translateY(-50%)',
-        width: 280, zIndex: 10, pointerEvents: 'none',
+        width: sidebarW, flexShrink: 0,
+        padding: isMobile ? '32px 24px' : isTablet ? '0 40px' : '0 64px',
+        display: 'flex', flexDirection: 'column', justifyContent: 'center',
+        position: 'relative', zIndex: 10,
       }}>
         <p style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.2em', color: C.accent, marginBottom: 20 }}>
           AMENAZAS EN TIEMPO REAL
@@ -527,14 +576,14 @@ function GlobeSection({ incidents }) {
         </div>
       </div>
 
-      {/* Globe — pointer-events none so scroll is never captured */}
-      <div ref={containerRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
-
-      {/* Left fade */}
-      <div style={{
-        position: 'absolute', top: 0, left: 0, width: 400, height: '100%', pointerEvents: 'none',
-        background: `linear-gradient(to right, ${C.bg} 50%, transparent)`,
-      }} />
+      {/* Globe — pointer-events none prevents scroll capture */}
+      <div style={{ flex: 1, position: 'relative', height: isMobile ? 380 : '100%' }}>
+        <div ref={containerRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
+        <div style={{
+          position: 'absolute', top: 0, left: 0, width: 80, height: '100%', pointerEvents: 'none',
+          background: `linear-gradient(to right, ${C.bg}, transparent)`,
+        }} />
+      </div>
     </section>
   )
 }
