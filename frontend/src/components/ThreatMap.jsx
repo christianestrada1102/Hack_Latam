@@ -1,10 +1,22 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   Map,
   MapClusterLayer,
   MapPopup,
   MapControls,
+  useMap,
 } from '@/components/ui/map'
+
+const MAPLIBRE_GLYPHS = 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf'
+
+function GlyphFix() {
+  const { map, isLoaded } = useMap()
+  useEffect(() => {
+    if (!map || !isLoaded) return
+    map.setGlyphs(MAPLIBRE_GLYPHS)
+  }, [map, isLoaded])
+  return null
+}
 
 const CARTO_DARK = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
 
@@ -72,6 +84,7 @@ export default function ThreatMap({ incidents = [] }) {
       zoom={3}
       scrollZoom={false}
     >
+      <GlyphFix />
       <MapClusterLayer
         data={geoJSON}
         clusterColors={['#ffc174', '#f59e0b', '#ef4444']}
