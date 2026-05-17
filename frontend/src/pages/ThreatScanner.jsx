@@ -504,16 +504,21 @@ export default function ThreatScanner() {
     if (text.trim())  formData.append('text',  text.trim())
     if (url.trim())   formData.append('url',   url.trim())
 
+    // Debug: verify FormData contents before sending
+    for (const [key, value] of formData.entries()) {
+      console.log('[Scanner] FormData entry:', key, value)
+    }
+    console.log('[Scanner] imageFile state:', imageFile)
+
     const animationDone = new Promise((resolve) => setTimeout(resolve, ANIMATION_DURATION))
     Promise.allSettled([animationDone, analyzeContent(formData)]).then(([, apiResult]) => {
       const apiData = apiResult.status === 'fulfilled' ? apiResult.value : null
       if (apiData) {
         setSavedToDB(true)
         setIncidentId(apiData.incident_id ?? null)
-        // Replace placeholder with real OCR/combined text from server
         if (apiData.analyzed_content) setOriginalContent(apiData.analyzed_content)
       }
-      setResult(mapApiResult(apiData) ?? MOCK_RESULT)
+      setResult(mapApiResult(apiData))   // null on API failure — no fake fallback
       setState('done')
     })
   }, [imageFile, audioFile, text, url, t])
@@ -540,7 +545,7 @@ export default function ThreatScanner() {
   }
 
   const hasContent = text.trim() || url.trim() || imageFile || audioFile
-  const display = result ?? MOCK_RESULT
+  const display = result
 
   return (
     <>
@@ -733,6 +738,20 @@ export default function ThreatScanner() {
           </div>
         ) : state === 'analyzing' ? (
           <AnalyzingPanel />
+        ) : !display ? (
+          <div className="flex flex-col items-center justify-center h-full text-center gap-3 px-4">
+            <AlertOctagon size={24} strokeWidth={1.5} style={{ color: '#ef4444' }} />
+            <p className="text-[12px] font-mono leading-relaxed" style={{ color: '#a08e7a' }}>
+              Error al analizar. Verifica que el backend esté corriendo e intenta de nuevo.
+            </p>
+            <button
+              onClick={resetScan}
+              className="text-[11px] font-mono px-3 py-1.5 rounded border transition-colors"
+              style={{ color: '#f59e0b', borderColor: '#f59e0b40', background: '#f59e0b08' }}
+            >
+              Intentar de nuevo
+            </button>
+          </div>
         ) : (
           <>
             {/* Score + category */}
@@ -858,7 +877,7 @@ export default function ThreatScanner() {
       </div>
     </div>
 
-    {showReport && (
+    {showReport && display && (
       <ReportModal display={display} incidentId={incidentId} onClose={() => setShowReport(false)} />
     )}
     </>
