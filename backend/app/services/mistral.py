@@ -19,7 +19,7 @@ from app.config import settings
 _OPENROUTER_BASE = "https://openrouter.ai/api/v1"
 _MISTRAL_BASE    = "https://api.mistral.ai/v1"
 
-_PIXTRAL         = "mistralai/pixtral-12b"
+_PIXTRAL         = "mistralai/pixtral-large-2411"
 _PIXTRAL_FALLBACK = "mistralai/mistral-small-3.1-24b-instruct:free"
 _MISTRAL_SMALL = "mistralai/mistral-small-3.2-24b-instruct-2506"
 _HAIKU         = "anthropic/claude-haiku-4-5"
