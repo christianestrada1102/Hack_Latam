@@ -46,9 +46,9 @@ export default function Sidebar() {
       <div className="mt-auto px-2 pt-4 border-t border-[#262626]">
         <Link
           to="/"
-          style={{ fontSize: 11, color: '#444', textDecoration: 'none', display: 'block', marginBottom: 8, transition: 'color 200ms' }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = '#a08e7a' }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = '#444' }}
+          style={{ fontSize: 12, color: '#666', textDecoration: 'none', display: 'block', marginBottom: 8, paddingTop: 12, borderTop: '1px solid #1a1a1a', transition: 'color 200ms' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = '#ffc174' }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = '#666' }}
         >
           ← Volver a HAVEN
         </Link>
