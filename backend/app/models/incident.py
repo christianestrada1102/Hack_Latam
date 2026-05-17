@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import DateTime, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -42,3 +42,7 @@ class Incident(Base):
     # Campaign linkage
     similar_count: Mapped[int] = mapped_column(Integer, default=0)
     campaign_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+    # Community reporting
+    reported: Mapped[bool] = mapped_column(Boolean, default=False)
+    report_count: Mapped[int] = mapped_column(Integer, default=0)

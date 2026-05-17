@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import cast, distinct, func, or_, select, Text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,6 +28,7 @@ class IncidentOut(BaseModel):
     entities: dict
     similar_count: int
     campaign_id: Optional[str]
+    report_count: int = 0
 
 
 class StatsOut(BaseModel):
@@ -57,16 +59,17 @@ def _row_to_incident(inc) -> IncidentOut:
         entities=inc.entities,
         similar_count=inc.similar_count,
         campaign_id=inc.campaign_id,
+        report_count=inc.report_count,
     )
 
 
 @router.get("/alerts", response_model=list[IncidentOut])
 async def list_alerts(db: AsyncSession = Depends(get_db)):
-    """Incidents with risk_score >= 75, ordered by risk score descending."""
+    """Incidents with risk_score >= 75, ordered by risk score then community report_count."""
     q = (
         select(Incident)
         .where(Incident.risk_score >= 75)
-        .order_by(Incident.risk_score.desc())
+        .order_by(Incident.risk_score.desc(), Incident.report_count.desc())
         .limit(50)
     )
     result = await db.execute(q)
@@ -172,3 +175,37 @@ async def feed_stats(db: AsyncSession = Depends(get_db)):
         avg_risk_score=avg_risk_score,
         top_threat_types=top_threat_types,
     )
+
+
+class ReportBody(BaseModel):
+    user_confirmed: bool = True
+    notes: str = ""
+
+
+@router.patch("/{incident_id}/report")
+async def report_incident(
+    incident_id: str,
+    body: ReportBody,
+    db: AsyncSession = Depends(get_db),
+):
+    """Mark an incident as user-confirmed and increment its report_count."""
+    try:
+        uid = UUID(incident_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid incident_id")
+
+    result = await db.execute(select(Incident).where(Incident.id == uid))
+    incident = result.scalar_one_or_none()
+    if not incident:
+        raise HTTPException(status_code=404, detail="Incident not found")
+
+    incident.reported     = True
+    incident.report_count = (incident.report_count or 0) + 1
+    await db.commit()
+    await db.refresh(incident)
+
+    return {
+        "incident_id":  incident_id,
+        "report_count": incident.report_count,
+        "reported":     incident.reported,
+    }

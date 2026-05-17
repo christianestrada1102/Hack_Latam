@@ -21,6 +21,13 @@ async def init_db() -> None:
         # pgvector extension must exist before creating the vector column
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         await conn.run_sync(Base.metadata.create_all)
+        # Add community-reporting columns to existing deployments
+        await conn.execute(text(
+            "ALTER TABLE incidents ADD COLUMN IF NOT EXISTS reported BOOLEAN NOT NULL DEFAULT FALSE"
+        ))
+        await conn.execute(text(
+            "ALTER TABLE incidents ADD COLUMN IF NOT EXISTS report_count INTEGER NOT NULL DEFAULT 0"
+        ))
 
 
 async def get_db() -> AsyncSession:
