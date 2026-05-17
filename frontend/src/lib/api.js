@@ -48,6 +48,20 @@ export async function getCampaigns() {
   }
 }
 
+export async function reportIncident(incidentId) {
+  try {
+    const res = await fetch(`${BASE_URL}/api/feed/${incidentId}/report`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_confirmed: true, notes: '' }),
+    })
+    if (!res.ok) return null
+    return await res.json()
+  } catch {
+    return null
+  }
+}
+
 export async function analyzeContent(formData) {
   try {
     const res = await fetch(`${BASE_URL}/api/analyze`, {

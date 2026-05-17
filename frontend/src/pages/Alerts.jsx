@@ -63,8 +63,9 @@ function mapApiAlert(inc) {
     urgency:     inc.urgency_score,
     coercion:    inc.coercion_score,
     authority:   inc.authority_score,
-    similar:     inc.similar_count,
-    campaign:    inc.campaign_id,
+    similar:      inc.similar_count,
+    campaign:     inc.campaign_id,
+    report_count: inc.report_count ?? 0,
   }
 }
 
@@ -230,7 +231,13 @@ export default function Alerts() {
     const load = async () => {
       const data = await getAlerts()
       if (cancelled) return
-      setAlerts(data ? data.map(mapApiAlert) : [])
+      setAlerts(
+        data
+          ? data
+              .map(mapApiAlert)
+              .sort((a, b) => b.score - a.score || b.report_count - a.report_count)
+          : []
+      )
       setLoading(false)
     }
     load()

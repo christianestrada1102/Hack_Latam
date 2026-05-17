@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { ChevronRight, AlertOctagon, ShieldAlert, CheckCircle, X, Copy, ExternalLink } from 'lucide-react'
-import { analyzeContent } from '../lib/api'
+import { ChevronRight, AlertOctagon, ShieldAlert, CheckCircle, X } from 'lucide-react'
+import { analyzeContent, reportIncident } from '../lib/api'
 import { useLang } from '../lib/LanguageContext'
 
 // Timing is language-independent; text is resolved via t() at runtime
@@ -379,42 +379,8 @@ function AnalyzingPanel() {
   )
 }
 
-function buildReportText(display) {
-  const phones   = display.entities.phones  ?.join(', ')  || '—'
-  const domains  = display.entities.domains ?.join(', ')  || '—'
-  const keywords = display.entities.keywords?.slice(0, 3).join('; ') || '—'
-  return [
-    `Reporte de Fraude Digital`,
-    `─────────────────────────────`,
-    `Tipo:    ${display.category.toUpperCase()}`,
-    `Riesgo:  ${display.score}/100`,
-    ``,
-    `Entidades detectadas:`,
-    `  Teléfonos: ${phones}`,
-    `  Dominios:  ${domains}`,
-    `  Tácticas:  ${keywords}`,
-    ``,
-    `Descripción:`,
-    display.manipulationSummary || 'No disponible.',
-    ``,
-    `Reportar en: https://www.condusef.gob.mx`,
-    `Policía Cibernética: https://www.gob.mx/policiafederal`,
-  ].join('\n')
-}
-
-function CondusefModal({ display, onClose }) {
-  const [copied, setCopied] = useState(false)
-  const reportText = buildReportText(display)
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(reportText)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      // fallback: select a textarea
-    }
-  }
+function ReportModal({ display, incidentId, onClose }) {
+  const shortId = incidentId ? `INC-${incidentId.slice(0, 4).toUpperCase()}` : '—'
 
   return (
     <div
@@ -428,83 +394,60 @@ function CondusefModal({ display, onClose }) {
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: '#262626' }}>
-          <div>
-            <p className="text-sm font-semibold" style={{ color: '#e5e2e1' }}>Reportar este fraude</p>
-            <p className="text-[11px] mt-0.5" style={{ color: '#a08e7a' }}>Comparte esta información con las autoridades</p>
+          <div className="flex items-center gap-2">
+            <CheckCircle size={16} strokeWidth={1.5} style={{ color: '#10b981' }} />
+            <p className="text-sm font-semibold" style={{ color: '#e5e2e1' }}>Amenaza reportada</p>
           </div>
           <button onClick={onClose} className="transition-colors" style={{ color: '#555' }}>
             <X size={16} strokeWidth={1.5} />
           </button>
         </div>
 
-        {/* Report preview */}
-        <div className="px-5 py-4 flex flex-col gap-3">
-          <div className="flex gap-4">
-            <div>
-              <p className="text-[10px] uppercase tracking-widest font-mono mb-0.5" style={{ color: '#555' }}>Tipo</p>
-              <p className="text-[12px] font-mono uppercase" style={{ color: '#f59e0b' }}>{display.category}</p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-widest font-mono mb-0.5" style={{ color: '#555' }}>Riesgo</p>
-              <p className="text-[12px] font-mono font-bold" style={{ color: display.score >= 80 ? '#ef4444' : '#f59e0b' }}>{display.score}/100</p>
-            </div>
-          </div>
+        {/* Body */}
+        <div className="px-5 py-4 flex flex-col gap-4">
+          <p className="text-[12px] leading-relaxed" style={{ color: '#a08e7a' }}>
+            Este caso quedó registrado en nuestra base de datos de inteligencia colectiva. Tu reporte
+            ayuda a proteger a otros usuarios en LATAM.
+          </p>
 
-          {(display.entities.phones?.length > 0 || display.entities.domains?.length > 0) && (
-            <div>
-              <p className="text-[10px] uppercase tracking-widest font-mono mb-1" style={{ color: '#555' }}>Entidades</p>
-              <div className="flex flex-wrap gap-1.5">
-                {display.entities.phones?.map((p) => (
-                  <span key={p} className="text-[10px] font-mono px-1.5 py-0.5 rounded border" style={{ color: '#f59e0b', background: '#f59e0b10', borderColor: '#f59e0b30' }}>{p}</span>
-                ))}
-                {display.entities.domains?.map((d) => (
-                  <span key={d} className="text-[10px] font-mono px-1.5 py-0.5 rounded border" style={{ color: '#ef4444', background: '#ef444410', borderColor: '#ef444430' }}>{d}</span>
-                ))}
+          {/* Incident details */}
+          <div className="rounded border p-3 flex flex-col gap-2.5" style={{ background: '#0e0e0e', borderColor: '#262626' }}>
+            <div className="flex items-start gap-5">
+              <div>
+                <p className="text-[10px] uppercase tracking-widest font-mono mb-0.5" style={{ color: '#555' }}>ID</p>
+                <p className="text-[12px] font-mono" style={{ color: '#e5e2e1' }}>{shortId}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-widest font-mono mb-0.5" style={{ color: '#555' }}>Tipo</p>
+                <p className="text-[12px] font-mono uppercase" style={{ color: '#f59e0b' }}>{display.category}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-widest font-mono mb-0.5" style={{ color: '#555' }}>Riesgo</p>
+                <p className="text-[12px] font-mono font-bold" style={{ color: display.score >= 80 ? '#ef4444' : '#f59e0b' }}>
+                  {display.score}/100
+                </p>
               </div>
             </div>
-          )}
-
-          {display.manipulationSummary && (
-            <div>
-              <p className="text-[10px] uppercase tracking-widest font-mono mb-1" style={{ color: '#555' }}>Descripción</p>
-              <p className="text-[11px] leading-relaxed" style={{ color: '#a08e7a' }}>{display.manipulationSummary}</p>
-            </div>
-          )}
+            {display.region && (
+              <div>
+                <p className="text-[10px] uppercase tracking-widest font-mono mb-0.5" style={{ color: '#555' }}>Región</p>
+                <p className="text-[12px] font-mono" style={{ color: '#a08e7a' }}>{display.region}</p>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Actions */}
-        <div className="px-5 pb-4 flex flex-col gap-3">
-          <div className="flex gap-2">
-            <button
-              onClick={handleCopy}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded border text-[12px] font-mono transition-colors"
-              style={{ borderColor: '#f59e0b', color: copied ? '#10b981' : '#f59e0b', background: 'transparent' }}
-            >
-              <Copy size={12} strokeWidth={1.5} />
-              {copied ? 'Copiado' : 'Copiar reporte'}
-            </button>
-            <a
-              href="https://www.condusef.gob.mx"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded text-[12px] font-mono transition-colors"
-              style={{ background: '#f59e0b', color: '#131313' }}
-            >
-              <ExternalLink size={12} strokeWidth={2} />
-              Ir a CONDUSEF
-            </a>
-          </div>
+        {/* Footer */}
+        <div className="px-5 pb-5 flex flex-col gap-3">
+          <button
+            onClick={onClose}
+            className="w-full flex items-center justify-center py-2 rounded text-[12px] font-semibold transition-colors"
+            style={{ background: '#f59e0b', color: '#131313' }}
+          >
+            Cerrar
+          </button>
           <p className="text-[10px] leading-relaxed" style={{ color: '#555' }}>
-            También puedes reportar a Policía Cibernética:{' '}
-            <a
-              href="https://www.gob.mx/policiafederal"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline"
-              style={{ color: '#a08e7a' }}
-            >
-              gob.mx/policiafederal
-            </a>
+            Si perdiste dinero, también puedes llamar a Policía Cibernética: 55 5242-5100 ext. 5086
           </p>
         </div>
       </div>
@@ -523,8 +466,10 @@ export default function ThreatScanner() {
   const [logLines, setLogLines]             = useState([])
   const [result, setResult]                 = useState(null)
   const [savedToDB, setSavedToDB]           = useState(false)
+  const [incidentId, setIncidentId]         = useState(null)
+  const [reported, setReported]             = useState(false)
+  const [showReport, setShowReport]         = useState(false)
   const [originalContent, setOriginalContent] = useState('')
-  const [showCondusef, setShowCondusef]     = useState(false)
 
   const fileInputRef = useRef(null)
 
@@ -566,7 +511,10 @@ export default function ThreatScanner() {
     const animationDone = new Promise((resolve) => setTimeout(resolve, ANIMATION_DURATION))
     Promise.allSettled([animationDone, analyzeContent(formData)]).then(([, apiResult]) => {
       const apiData = apiResult.status === 'fulfilled' ? apiResult.value : null
-      if (apiData) setSavedToDB(true)
+      if (apiData) {
+        setSavedToDB(true)
+        setIncidentId(apiData.incident_id ?? null)
+      }
       setResult(mapApiResult(apiData) ?? MOCK_RESULT)
       setState('done')
     })
@@ -581,8 +529,16 @@ export default function ThreatScanner() {
     setLogLines([])
     setResult(null)
     setSavedToDB(false)
+    setIncidentId(null)
+    setReported(false)
+    setShowReport(false)
     setOriginalContent('')
-    setShowCondusef(false)
+  }
+
+  const handleReport = () => {
+    setReported(true)
+    setShowReport(true)
+    if (incidentId) reportIncident(incidentId)
   }
 
   const hasContent = text.trim() || url.trim() || imageFile || audioFile
@@ -735,18 +691,25 @@ export default function ThreatScanner() {
             </div>
             <TerminalLog lines={logLines} />
             {state === 'done' && savedToDB && (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-500">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-500 shrink-0">
                   <CheckCircle size={12} strokeWidth={1.5} />
                   {t('scanner.savedToDB')}
                 </div>
-                <button
-                  onClick={() => setShowCondusef(true)}
-                  className="text-[11px] font-mono px-2.5 py-1 rounded border transition-colors"
-                  style={{ color: '#f59e0b', borderColor: '#f59e0b40', background: '#f59e0b08' }}
-                >
-                  Reportar a CONDUSEF
-                </button>
+                {reported ? (
+                  <div className="flex items-center gap-1.5 text-[11px] font-mono" style={{ color: '#10b981' }}>
+                    <CheckCircle size={12} strokeWidth={1.5} />
+                    Reportado a la inteligencia colectiva
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleReport}
+                    className="text-[11px] font-mono px-2.5 py-1 rounded border transition-colors shrink-0"
+                    style={{ color: '#f59e0b', borderColor: '#f59e0b40', background: '#f59e0b08' }}
+                  >
+                    Reportar amenaza
+                  </button>
+                )}
               </div>
             )}
             {state === 'done' && originalContent && (
@@ -897,8 +860,8 @@ export default function ThreatScanner() {
       </div>
     </div>
 
-    {showCondusef && (
-      <CondusefModal display={display} onClose={() => setShowCondusef(false)} />
+    {showReport && (
+      <ReportModal display={display} incidentId={incidentId} onClose={() => setShowReport(false)} />
     )}
     </>
   )

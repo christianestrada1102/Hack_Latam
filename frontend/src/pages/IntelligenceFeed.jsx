@@ -105,6 +105,7 @@ function mapApiIncident(inc) {
     authority_score:    inc.authority_score,
     emotional_pressure: inc.emotional_pressure,
     similar_count:      inc.similar_count,
+    report_count:       inc.report_count ?? 0,
   }
 }
 
@@ -282,10 +283,15 @@ function IncidentRow({ inc, isSelected, onClick }) {
     >
       <span className="text-[10px] font-mono text-neutral-600">{inc.shortId}</span>
       <span className="text-[10px] font-mono text-neutral-500">{inc.time}</span>
-      <div>
+      <div className="flex flex-col gap-1">
         <span className={`text-[9px] uppercase tracking-wider font-medium border px-1.5 py-0.5 rounded ${typeBadge(inc.type)}`}>
           {inc.type}
         </span>
+        {inc.report_count > 0 && (
+          <span className="text-[9px] font-mono" style={{ color: '#f59e0b' }}>
+            ✓ verificado
+          </span>
+        )}
       </div>
       <div className="min-w-0 pr-3">
         <p className="text-[12px] text-neutral-200 truncate">{inc.desc}</p>
