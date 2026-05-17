@@ -19,7 +19,8 @@
       "Bash(npx skills *)",
       "Bash(node *)",
       "Bash(npm list *)",
-      "Bash(powershell *)"
+      "Bash(powershell *)",
+      "Bash(git commit *)"
     ]
   }
 }
