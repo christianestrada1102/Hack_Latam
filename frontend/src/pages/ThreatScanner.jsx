@@ -205,13 +205,13 @@ function HighlightedContent({ text, entities, vtData }) {
         seg.type ? (
           <span
             key={i}
-            className="inline cursor-pointer"
+            className="inline cursor-default"
             style={HIGHLIGHT_STYLE[seg.type]}
-            onClick={(e) => {
-              e.stopPropagation()
+            onMouseEnter={(e) => {
               const r = e.currentTarget.getBoundingClientRect()
-              setOpenSeg(openSeg?.index === i ? null : { index: i, rect: r, type: seg.type, text: seg.text })
+              setOpenSeg({ index: i, rect: r, type: seg.type, text: seg.text })
             }}
+            onMouseLeave={() => setOpenSeg(null)}
           >
             {seg.text}
             {openSeg?.index === i && (
@@ -952,7 +952,7 @@ export default function ThreatScanner() {
       {/* Right panel — Threat Report */}
       <div
         className="flex flex-col gap-4"
-        style={{ width: 420, flexShrink: 0, position: 'sticky', top: 20, maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', scrollbarWidth: 'thin', scrollbarColor: '#2a2a2a transparent' }}
+        style={{ width: 360, flexShrink: 0, position: 'sticky', top: 20, maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', scrollbarWidth: 'thin', scrollbarColor: '#2a2a2a transparent' }}
       >
         {state === 'idle' ? (
           <div className="flex flex-col items-center justify-center h-full text-center gap-3">
