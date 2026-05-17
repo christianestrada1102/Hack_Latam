@@ -69,15 +69,22 @@ export async function analyzeContent(formData) {
       body: formData,
     })
     if (!res.ok) {
-      const body = await res.text()
-      console.error('[API] analyzeContent failed:', res.status, body)
-      return null
+      let message = `Error del servidor (${res.status})`
+      try {
+        const body = await res.json()
+        message = body.detail || body.message || message
+      } catch {
+        const text = await res.text()
+        message = text || message
+      }
+      console.error('[API] analyzeContent failed:', res.status, message)
+      return { _apiError: message }
     }
     const data = await res.json()
     console.log('[API] analyzeContent response:', data)
     return data
   } catch (err) {
     console.error('[API] analyzeContent network error:', err)
-    return null
+    return { _apiError: err.message || 'Error de conexión' }
   }
 }

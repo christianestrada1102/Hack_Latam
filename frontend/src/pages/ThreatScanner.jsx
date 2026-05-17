@@ -461,23 +461,80 @@ function ReportModal({ display, incidentId, onClose }) {
   )
 }
 
+const _emptyPersist = () => ({
+  imageFile:       null,
+  audioFile:       null,
+  text:            '',
+  url:             '',
+  state:           'idle',
+  logLines:        [],
+  result:          null,
+  savedToDB:       false,
+  incidentId:      null,
+  reported:        false,
+  originalContent: '',
+  analysisError:   null,
+})
+let _persist = _emptyPersist()
+
 export default function ThreatScanner() {
   const { t } = useLang()
-  const [imageFile, setImageFile]           = useState(null)
-  const [audioFile, setAudioFile]           = useState(null)
-  const [text, setText]                     = useState('')
-  const [url, setUrl]                       = useState('')
-  const [isDragging, setIsDragging]         = useState(false)
-  const [state, setState]                   = useState('idle')   // idle | analyzing | done
-  const [logLines, setLogLines]             = useState([])
-  const [result, setResult]                 = useState(null)
-  const [savedToDB, setSavedToDB]           = useState(false)
-  const [incidentId, setIncidentId]         = useState(null)
-  const [reported, setReported]             = useState(false)
-  const [showReport, setShowReport]         = useState(false)
-  const [originalContent, setOriginalContent] = useState('')
+  const [imageFile, setImageFile]             = useState(() => _persist.imageFile)
+  const [audioFile, setAudioFile]             = useState(() => _persist.audioFile)
+  const [text, setText]                       = useState(() => _persist.text)
+  const [url, setUrl]                         = useState(() => _persist.url)
+  const [isDragging, setIsDragging]           = useState(false)
+  const [state, setState]                     = useState(() => _persist.state)
+  const [logLines, setLogLines]               = useState(() => _persist.logLines)
+  const [result, setResult]                   = useState(() => _persist.result)
+  const [savedToDB, setSavedToDB]             = useState(() => _persist.savedToDB)
+  const [incidentId, setIncidentId]           = useState(() => _persist.incidentId)
+  const [reported, setReported]               = useState(() => _persist.reported)
+  const [showReport, setShowReport]           = useState(false)
+  const [originalContent, setOriginalContent] = useState(() => _persist.originalContent)
+  const [analysisError, setAnalysisError]     = useState(() => _persist.analysisError)
+  const [imagePreviewUrl, setImagePreviewUrl] = useState(null)
+  const [audioPreviewUrl, setAudioPreviewUrl] = useState(null)
 
-  const fileInputRef = useRef(null)
+  const fileInputRef   = useRef(null)
+  const previewUrlsRef = useRef([])
+
+  useEffect(() => {
+    _persist.imageFile       = imageFile
+    _persist.audioFile       = audioFile
+    _persist.text            = text
+    _persist.url             = url
+    _persist.state           = state
+    _persist.logLines        = logLines
+    _persist.result          = result
+    _persist.savedToDB       = savedToDB
+    _persist.incidentId      = incidentId
+    _persist.reported        = reported
+    _persist.originalContent = originalContent
+    _persist.analysisError   = analysisError
+  })
+
+  useEffect(() => {
+    if (!imageFile) { setImagePreviewUrl(null); return }
+    const objUrl = URL.createObjectURL(imageFile)
+    previewUrlsRef.current.push(objUrl)
+    setImagePreviewUrl(objUrl)
+    return () => {
+      URL.revokeObjectURL(objUrl)
+      previewUrlsRef.current = previewUrlsRef.current.filter((u) => u !== objUrl)
+    }
+  }, [imageFile])
+
+  useEffect(() => {
+    if (!audioFile) { setAudioPreviewUrl(null); return }
+    const objUrl = URL.createObjectURL(audioFile)
+    previewUrlsRef.current.push(objUrl)
+    setAudioPreviewUrl(objUrl)
+    return () => {
+      URL.revokeObjectURL(objUrl)
+      previewUrlsRef.current = previewUrlsRef.current.filter((u) => u !== objUrl)
+    }
+  }, [audioFile])
 
   const handleFileChange = (file) => {
     if (!file) return
@@ -518,18 +575,34 @@ export default function ThreatScanner() {
 
     const animationDone = new Promise((resolve) => setTimeout(resolve, ANIMATION_DURATION))
     Promise.allSettled([animationDone, analyzeContent(formData)]).then(([, apiResult]) => {
-      const apiData = apiResult.status === 'fulfilled' ? apiResult.value : null
-      if (apiData) {
-        setSavedToDB(true)
-        setIncidentId(apiData.incident_id ?? null)
-        if (apiData.analyzed_content) setOriginalContent(apiData.analyzed_content)
+      const raw = apiResult.status === 'fulfilled' ? apiResult.value : { _apiError: 'Error inesperado' }
+      if (raw?._apiError) {
+        const msg = raw._apiError
+        let friendly
+        if (/transcri|audio/i.test(msg))
+          friendly = 'No se pudo transcribir el audio. Verifica que el archivo sea MP3, WAV o M4A.'
+        else if (/connect|conexi[oó]n|network|fetch/i.test(msg))
+          friendly = 'No hay conexión con el servidor. Verifica que el backend esté corriendo.'
+        else
+          friendly = `Error al analizar: ${msg}`
+        setAnalysisError(friendly)
+        setResult(null)
+        setState('done')
+        return
       }
-      setResult(mapApiResult(apiData))   // null on API failure — no fake fallback
+      if (raw) {
+        setSavedToDB(true)
+        setIncidentId(raw.incident_id ?? null)
+        if (raw.analyzed_content) setOriginalContent(raw.analyzed_content)
+      }
+      setResult(mapApiResult(raw))
+      setAnalysisError(null)
       setState('done')
     })
   }, [imageFile, audioFile, text, url, t])
 
   const resetScan = () => {
+    _persist = _emptyPersist()
     setImageFile(null)
     setAudioFile(null)
     setText('')
@@ -542,6 +615,7 @@ export default function ThreatScanner() {
     setReported(false)
     setShowReport(false)
     setOriginalContent('')
+    setAnalysisError(null)
   }
 
   const handleReport = () => {
@@ -684,7 +758,7 @@ export default function ThreatScanner() {
 
         {/* Terminal log */}
         {(state === 'analyzing' || state === 'done') && (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 border-t border-[#1e1e1e] pt-3">
             <div className="flex items-center justify-between">
               <span className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono">
                 {t('scanner.log')}
@@ -692,7 +766,10 @@ export default function ThreatScanner() {
               {state === 'done' && (
                 <button
                   onClick={resetScan}
-                  className="text-[10px] text-neutral-600 hover:text-neutral-400 transition-colors"
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#ffc174'; e.currentTarget.style.color = '#ffc174' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#262626'; e.currentTarget.style.color = '#a08e7a' }}
+                  className="text-[10px] font-mono rounded transition-colors"
+                  style={{ border: '1px solid #262626', color: '#a08e7a', padding: '6px 12px', borderRadius: 4 }}
                 >
                   {t('scanner.newScan')}
                 </button>
@@ -726,7 +803,27 @@ export default function ThreatScanner() {
                 <p className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono mb-2">
                   Contenido Analizado
                 </p>
-                <HighlightedContent text={originalContent} entities={display.entities} />
+                <HighlightedContent text={originalContent} entities={display?.entities ?? {}} />
+              </div>
+            )}
+            {state === 'done' && imagePreviewUrl && (
+              <div className="rounded border overflow-hidden" style={{ borderColor: '#262626', background: '#0a0a0a' }}>
+                <p className="text-[10px] uppercase tracking-widest font-mono px-3 pt-2 pb-1" style={{ color: '#555' }}>
+                  IMAGEN ANALIZADA
+                </p>
+                <div className="flex items-center justify-center p-2">
+                  <img src={imagePreviewUrl} alt="Imagen analizada" style={{ maxHeight: 200, objectFit: 'contain' }} />
+                </div>
+              </div>
+            )}
+            {state === 'done' && audioPreviewUrl && (
+              <div className="rounded border p-3" style={{ borderColor: '#262626', background: '#0a0a0a' }}>
+                <p className="text-[10px] uppercase tracking-widest font-mono mb-2" style={{ color: '#555' }}>
+                  AUDIO ANALIZADO
+                </p>
+                <audio controls style={{ width: '100%', filter: 'invert(1) hue-rotate(180deg)' }}>
+                  <source src={audioPreviewUrl} />
+                </audio>
               </div>
             )}
           </div>
@@ -748,7 +845,7 @@ export default function ThreatScanner() {
           <div className="flex flex-col items-center justify-center h-full text-center gap-3 px-4">
             <AlertOctagon size={24} strokeWidth={1.5} style={{ color: '#ef4444' }} />
             <p className="text-[12px] font-mono leading-relaxed" style={{ color: '#a08e7a' }}>
-              Error al analizar. Verifica que el backend esté corriendo e intenta de nuevo.
+              {analysisError || 'Error al analizar. Verifica que el backend esté corriendo e intenta de nuevo.'}
             </p>
             <button
               onClick={resetScan}
