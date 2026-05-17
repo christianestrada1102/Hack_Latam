@@ -69,7 +69,7 @@ const STAT_ROWS = [
 const STEPS = [
   {
     num: '01', title: 'Analiza', Icon: UploadIcon,
-    desc: 'Sube un screenshot de WhatsApp, un correo sospechoso, una URL o graba una llamada. Mistral Pixtral extrae el texto con OCR. Whisper transcribe el audio.',
+    desc: 'Sube un screenshot de WhatsApp, un correo sospechoso, una URL o graba una llamada. Mistral Pixtral extrae el texto con OCR. Whisper transcribe y analiza el audio.',
   },
   {
     num: '02', title: 'Detecta', Icon: MagnifyingGlassIcon,
@@ -446,7 +446,7 @@ function ProblemSection() {
               className="stat-num"
               data-end={end} data-prefix={prefix} data-suffix={suffix}
               style={{
-                fontFamily: HARMOND, fontWeight: 800, fontSize: 52,
+                fontFamily: MONO, fontWeight: 800, fontSize: 48,
                 color: C.accent, lineHeight: 1, flexShrink: 0, minWidth: 220,
               }}>
               {prefix}0{suffix}
@@ -783,7 +783,7 @@ function FinalCTA() {
             EMPIEZA AHORA
           </p>
           <h2 style={{ fontFamily: HARMOND, fontWeight: 800, fontStyle: 'italic', fontSize: 52, color: C.text, marginBottom: 20, lineHeight: 1.08 }}>
-            <div>¿Recibiste algo</div>
+            <div><span style={{ fontFamily: 'Georgia, serif' }}>¿</span>Recibiste algo</div>
             <div>sospechoso?</div>
           </h2>
           <p style={{ fontFamily: GEIST, fontSize: 16, color: C.muted, maxWidth: 480, lineHeight: 1.75, marginBottom: 44 }}>
@@ -845,16 +845,10 @@ function Footer() {
             onMouseLeave={(e) => { e.currentTarget.style.color = '#444' }}>
             <LinkedInLogoIcon width={15} height={15} />
           </a>
-          <a href="https://twitter.com/christianestrada" target="_blank" rel="noopener noreferrer"
-            style={{ color: '#444', transition: 'color .2s', display: 'flex' }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = C.text }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = '#444' }}>
-            <TwitterLogoIcon width={15} height={15} />
-          </a>
         </div>
       </div>
       <p style={{ fontFamily: GEIST, fontSize: 11, color: '#222', textAlign: 'center', paddingBottom: 16 }}>
-        HackLatam · DEF/ACC · hack@latam 2025
+        HackLatam · DEF/ACC · hack@latam 2026
       </p>
     </footer>
   )
