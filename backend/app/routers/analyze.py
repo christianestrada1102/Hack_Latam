@@ -1,5 +1,6 @@
 import asyncio
 import json
+import re
 from typing import Optional
 
 import httpx
@@ -92,11 +93,25 @@ async def analyze(
                 )
 
         elif text or url:
-            embed_text = (text or url).strip()
-            if not embed_text:
+            raw_input = (text or url).strip()
+            if not raw_input:
                 raise HTTPException(status_code=422, detail="Content cannot be empty.")
 
-            print(f"[analyze] text_content type={type(embed_text)} repr={repr(embed_text)[:200]}")
+            # For URLs: fetch page content and prepend it to the analysis input
+            if url or raw_input.startswith(("http://", "https://")):
+                try:
+                    async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+                        page = await client.get(raw_input)
+                        html = page.text
+                        visible = re.sub(r'<[^>]+>', ' ', html)
+                        visible = re.sub(r'\s+', ' ', visible).strip()
+                        embed_text = raw_input + "\n\n[Page content]\n" + visible[:2000]
+                except Exception:
+                    embed_text = raw_input
+            else:
+                embed_text = raw_input
+
+            print(f"[analyze] embed_text repr={repr(embed_text)[:300]}")
 
             # Mistral Small + Claude Haiku in parallel
             analysis, emotional = await asyncio.gather(
