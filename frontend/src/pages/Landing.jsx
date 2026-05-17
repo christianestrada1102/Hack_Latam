@@ -38,6 +38,7 @@ const C = {
 const HARMOND = "'Harmond', serif"
 const GEIST   = "'Geist Variable', 'Geist', system-ui, sans-serif"
 const MONO    = "'JetBrains Mono', 'Fira Code', monospace"
+const OFFBIT  = "'OffBitTrial', monospace"
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -374,11 +375,11 @@ function HeroSection({ stats, incidents, navRef }) {
           </div>
 
           <div ref={statRef} style={{ fontFamily: MONO, fontSize: 12, color: '#333' }}>
-            <span style={{ color: C.accent }}>{stats.threats ?? '—'}</span>
+            <span style={{ fontFamily: OFFBIT, fontSize: 14, color: C.accent }}>{stats.threats ?? '—'}</span>
             <span> amenazas · </span>
-            <span style={{ color: C.accent }}>{stats.campaigns ?? '—'}</span>
+            <span style={{ fontFamily: OFFBIT, fontSize: 14, color: C.accent }}>{stats.campaigns ?? '—'}</span>
             <span> campañas · avg </span>
-            <span style={{ color: C.accent }}>{stats.avgRisk ?? '—'}</span>
+            <span style={{ fontFamily: OFFBIT, fontSize: 14, color: C.accent }}>{stats.avgRisk ?? '—'}</span>
           </div>
         </div>
       </div>
@@ -404,7 +405,6 @@ function ProblemSection() {
       document.querySelectorAll('.stat-num').forEach((el) => {
         const end    = parseFloat(el.dataset.end)
         const prefix = el.dataset.prefix || ''
-        const suffix = el.dataset.suffix || ''
         const obj    = { v: 0 }
         ScrollTrigger.create({
           trigger: el, start: 'top 80%', once: true,
@@ -412,7 +412,7 @@ function ProblemSection() {
             gsap.to(obj, {
               v: end, duration: 2.2, ease: 'power2.out',
               onUpdate() {
-                el.textContent = prefix + Math.round(obj.v).toLocaleString('es-MX') + suffix
+                el.textContent = prefix + Math.round(obj.v).toLocaleString('es-MX')
               },
             })
           },
@@ -442,14 +442,16 @@ function ProblemSection() {
             borderBottom: i < STAT_ROWS.length - 1 ? `1px solid #0f0f0f` : 'none',
           }}>
             {/* Number */}
-            <div
-              className="stat-num"
-              data-end={end} data-prefix={prefix} data-suffix={suffix}
-              style={{
-                fontFamily: MONO, fontWeight: 800, fontSize: 48,
-                color: C.accent, lineHeight: 1, flexShrink: 0, minWidth: 220,
-              }}>
-              {prefix}0{suffix}
+            <div style={{ flexShrink: 0, minWidth: 220, lineHeight: 1 }}>
+              <span
+                className="stat-num"
+                data-end={end} data-prefix={prefix} data-suffix={suffix}
+                style={{ fontFamily: OFFBIT, fontWeight: 'bold', fontSize: 48, color: C.accent }}>
+                {prefix}0
+              </span>
+              {suffix && (
+                <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: 36, color: C.accent }}>{suffix}</span>
+              )}
             </div>
 
             {/* Separator */}
@@ -784,7 +786,7 @@ function FinalCTA() {
           </p>
           <h2 style={{ fontFamily: HARMOND, fontWeight: 800, fontStyle: 'italic', fontSize: 52, color: C.text, marginBottom: 20, lineHeight: 1.08 }}>
             <div><span style={{ fontFamily: 'Georgia, serif' }}>¿</span>Recibiste algo</div>
-            <div>sospechoso?</div>
+            <div>sospechoso<span style={{ fontFamily: 'Georgia, serif' }}>?</span></div>
           </h2>
           <p style={{ fontFamily: GEIST, fontSize: 16, color: C.muted, maxWidth: 480, lineHeight: 1.75, marginBottom: 44 }}>
             Analízalo en segundos. Sin registro. Sin datos personales. 100% anónimo. Tu análisis protege a otros en LATAM.

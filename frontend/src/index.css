@@ -4,6 +4,14 @@
 @import "@fontsource-variable/geist";
 
 @font-face {
+  font-family: 'OffBitTrial';
+  src: url('/fonts/OffBitTrial-Pixel.woff') format('woff');
+  font-style: normal;
+  font-weight: bold;
+  text-rendering: optimizeLegibility;
+}
+
+@font-face {
   font-family: 'Harmond';
   src: url('/fonts/Harmond-ExtraBoldExpanded.otf') format('opentype');
   font-weight: 800;
