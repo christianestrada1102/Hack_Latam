@@ -6,8 +6,7 @@ Models used:
   mistralai/mistral-small-3.2-24b-instruct-2506  — text/URL threat classification
   anthropic/claude-haiku-4-5       — emotional pressure detection
 
-Audio transcription uses the Mistral API directly (only provider
-that accepts base64 audio_url in the current integration).
+Audio transcription uses OpenRouter's STT endpoint with openai/whisper-1.
 """
 import base64
 import json
@@ -223,36 +222,45 @@ async def detect_emotional_scores(content: str) -> dict:
     return _parse_json(raw)
 
 
-# ── Audio transcription (Voxtral via OpenRouter) ─────────────────────────────
+# ── Audio transcription (Whisper via OpenRouter STT endpoint) ────────────────
+
+_EXT_MAP = {
+    "audio/mpeg":  "mp3",
+    "audio/mp4":   "mp4",
+    "audio/wav":   "wav",
+    "audio/webm":  "webm",
+    "audio/ogg":   "ogg",
+    "audio/m4a":   "m4a",
+    "audio/x-m4a": "m4a",
+}
+
 
 async def transcribe_audio(audio_bytes: bytes, mime_type: str = "audio/ogg") -> str:
     """
-    Transcribe a voice note using Voxtral via OpenRouter.
-    Audio is sent as base64 in the image_url vision format.
+    Transcribe audio using Whisper via OpenRouter's dedicated STT endpoint.
     Returns the raw transcription text.
     """
     if not settings.openrouter_api_key:
         return "[Transcription skipped] Set OPENROUTER_API_KEY to enable audio analysis."
 
-    b64 = base64.standard_b64encode(audio_bytes).decode()
+    ext = _EXT_MAP.get(mime_type.lower(), "mp3")
 
     try:
-        messages = [{
-            "role": "user",
-            "content": [
-                {
-                    "type": "image_url",
-                    "image_url": {"url": f"data:{mime_type};base64,{b64}"},
+        async with httpx.AsyncClient(timeout=60) as client:
+            resp = await client.post(
+                f"{_OPENROUTER_BASE}/audio/transcriptions",
+                headers={
+                    "Authorization": f"Bearer {settings.openrouter_api_key}",
+                    "HTTP-Referer": "http://localhost:5173",
+                    "X-Title":      "HackLatam",
                 },
-                {
-                    "type": "text",
-                    "text": (
-                        "Transcribe exactly what is said in this audio. "
-                        "Output only the transcription — no commentary, no timestamps."
-                    ),
-                },
-            ],
-        }]
-        return await _or_chat("mistralai/voxtral-mini-2507", messages, timeout=120)
+                files={"file": (f"audio.{ext}", audio_bytes, mime_type)},
+                data={"model": "openai/whisper-1"},
+            )
+
+        if resp.status_code != 200:
+            raise Exception(f"STT error {resp.status_code}: {resp.text}")
+
+        return resp.json().get("text", "")
     except Exception as exc:
         return f"[Transcription failed: {exc}]"
