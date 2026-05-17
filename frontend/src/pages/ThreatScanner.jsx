@@ -713,11 +713,11 @@ export default function ThreatScanner() {
 
   return (
     <>
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 24 }} className="p-5">
+    <div className="flex flex-col lg:flex-row lg:items-start gap-6 p-5">
       {/* Left panel */}
       <div
-        className="flex flex-col gap-3 min-w-0 border-r border-[#262626] pr-6"
-        style={{ flex: 1, maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', scrollbarWidth: 'thin', scrollbarColor: '#2a2a2a transparent' }}
+        className="flex flex-col gap-3 min-w-0 lg:border-r border-[#262626] lg:pr-6 lg:max-h-[calc(100vh-120px)] lg:overflow-y-auto"
+        style={{ flex: 1, scrollbarWidth: 'thin', scrollbarColor: '#2a2a2a transparent' }}
       >
         <div>
           <h1 className="text-sm font-semibold text-neutral-200">{t('scanner.title')}</h1>
@@ -739,8 +739,8 @@ export default function ThreatScanner() {
               style={{
                 border: `1px dashed ${isDragging ? '#f59e0b80' : '#262626'}`,
                 background: isDragging ? '#f59e0b08' : '#0e0e0e',
-                minHeight: 140,
-                padding: '20px 16px',
+                minHeight: 100,
+                padding: '16px',
               }}
             >
               <input
@@ -864,7 +864,7 @@ export default function ThreatScanner() {
             />
 
             {/* Action bar */}
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div className="flex items-center gap-1.5 flex-wrap">
                 {imageFile && (
                   <span
@@ -886,8 +886,8 @@ export default function ThreatScanner() {
               <button
                 disabled={!hasContent}
                 onClick={runAnalysis}
-                className="flex items-center gap-1.5 text-[12px] font-semibold px-4 py-2 rounded disabled:opacity-30 transition-colors shrink-0"
-                style={{ background: '#f59e0b', color: '#131313' }}
+                className="w-full sm:w-auto flex items-center justify-center gap-1.5 text-[12px] font-semibold px-4 py-3 sm:py-2 rounded disabled:opacity-30 transition-colors"
+                style={{ background: '#f59e0b', color: '#131313', minHeight: 44 }}
               >
                 Analizar todo <ChevronRight size={13} />
               </button>
@@ -949,10 +949,10 @@ export default function ThreatScanner() {
         )}
       </div>
 
-      {/* Right panel — Threat Report */}
+      {/* Right panel — Threat Report (hidden on mobile when idle) */}
       <div
-        className="flex flex-col gap-4"
-        style={{ width: 360, flexShrink: 0, position: 'sticky', top: 20, maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', scrollbarWidth: 'thin', scrollbarColor: '#2a2a2a transparent' }}
+        className={`flex-col gap-4 w-full lg:w-[360px] lg:shrink-0 lg:sticky lg:top-5 lg:max-h-[calc(100vh-120px)] lg:overflow-y-auto ${state === 'idle' ? 'hidden lg:flex' : 'flex'}`}
+        style={{ scrollbarWidth: 'thin', scrollbarColor: '#2a2a2a transparent' }}
       >
         {state === 'idle' ? (
           <div className="flex flex-col items-center justify-center h-full text-center gap-3">
