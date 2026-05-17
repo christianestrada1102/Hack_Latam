@@ -7,18 +7,34 @@ import {
   useMap,
 } from '@/components/ui/map'
 
-const MAPLIBRE_GLYPHS = 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf'
+const OPENMAPTILES_GLYPHS = 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf'
 
 function GlyphFix() {
-  const { map, isLoaded } = useMap()
+  const { map } = useMap()
   useEffect(() => {
-    if (!map || !isLoaded) return
-    map.setGlyphs(MAPLIBRE_GLYPHS)
-  }, [map, isLoaded])
+    if (!map) return
+
+    const applyGlyphs = () => {
+      try {
+        const style = map.getStyle()
+        if (!style || style.glyphs === OPENMAPTILES_GLYPHS) return
+        style.glyphs = OPENMAPTILES_GLYPHS
+        map.setStyle(style)
+      } catch (_) { /* ignore */ }
+    }
+
+    if (map.isStyleLoaded()) {
+      applyGlyphs()
+    } else {
+      map.on('style.load', applyGlyphs)
+    }
+
+    return () => map.off('style.load', applyGlyphs)
+  }, [map])
   return null
 }
 
-const CARTO_DARK = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
+const CARTO_DARK = 'https://tiles.openfreemap.org/styles/dark'
 
 const GEOCODE = {
   'chihuahua':     { lat: 28.6353,  lng: -106.0889 },
