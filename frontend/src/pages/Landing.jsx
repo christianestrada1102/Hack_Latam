@@ -278,7 +278,7 @@ function HeroSection({ stats, incidents, navRef }) {
 
     const tl = gsap.timeline()
     tl.to(nav, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }, 1.0)
-    tl.to(wrap, { left: '45%', width: '55%', duration: 1.1, ease: 'power3.inOut' }, 1.2)
+    tl.to(wrap, { left: '45%', width: '55%', duration: 1.1, ease: 'power2.inOut', force3D: true, roundProps: 'x,y' }, 1.25)
     tl.to(content, { opacity: 1, x: 0, duration: 0.9, ease: 'power3.out' }, 1.55)
     tl.from([line1.current, line2.current, line3.current], {
       y: 50, duration: 0.75, stagger: 0.12, ease: 'power3.out',
@@ -293,7 +293,7 @@ function HeroSection({ stats, incidents, navRef }) {
       <div ref={globeWrapRef} style={{
         position: 'absolute', top: 0, left: 0,
         width: '100%', height: '100%',
-        pointerEvents: 'none', zIndex: 1,
+        pointerEvents: 'none', zIndex: 1, willChange: 'transform',
       }}>
         <div ref={globeElRef} style={{ width: '100%', height: '100%' }} />
         <div style={{
