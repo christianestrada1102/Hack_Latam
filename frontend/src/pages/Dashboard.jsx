@@ -14,11 +14,12 @@ const METRIC_DEFS = [
   { id: 'avgRisk',    i18nKey: 'dash.avgRisk',     statsField: 'avg_risk_score',   icon: TrendingUp    },
 ]
 
-const CAMPAIGN_NAMES = {
-  'camp-bbva-fake-001':       'BBVA Fake Login',
-  'camp-empleo-remoto-001':   'Empleo Remoto',
-  'camp-cfe-sms-001':         'CFE Adeudo SMS',
-  'camp-inversion-ponzi-001': 'Inversión Ponzi',
+function formatCampaignId(id) {
+  return id
+    .split('-')
+    .filter((p) => p !== 'camp' && !/^\d+$/.test(p))
+    .join(' ')
+    .toUpperCase()
 }
 
 function scoreColor(s) {
@@ -158,7 +159,7 @@ export default function Dashboard() {
 
   const maxCount = campaigns.reduce((m, c) => Math.max(m, c.count), 1)
   const topCampaigns = campaigns.slice(0, 4).map((c) => ({
-    name:  CAMPAIGN_NAMES[c.campaign_id] ?? c.campaign_id,
+    name:  formatCampaignId(c.campaign_id),
     count: `${c.count} casos`,
     pct:   Math.round((c.count / maxCount) * 100),
   }))
@@ -187,7 +188,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-center h-32">
               {loading
                 ? <LoadingSpinner message="Cargando inteligencia..." />
-                : <span className="text-[12px] text-neutral-600">{t('dash.noData')}</span>
+                : <span className="text-[12px] text-neutral-600">{t('dash.noThreats')}</span>
               }
             </div>
           ) : (
