@@ -487,12 +487,8 @@ export default function ThreatScanner() {
   }
 
   const runAnalysis = useCallback(() => {
-    const parts = []
-    if (text.trim())  parts.push(text.trim())
-    if (url.trim())   parts.push(url.trim())
-    if (imageFile)    parts.push(`[Imagen: ${imageFile.name}]`)
-    if (audioFile)    parts.push(`[Audio: ${audioFile.name}]`)
-    setOriginalContent(text.trim() || url.trim() || parts.join('\n'))
+    // originalContent will be overridden with real OCR text once the API returns
+    setOriginalContent(text.trim() || url.trim() || '')
 
     setState('analyzing')
     setLogLines([])
@@ -514,6 +510,8 @@ export default function ThreatScanner() {
       if (apiData) {
         setSavedToDB(true)
         setIncidentId(apiData.incident_id ?? null)
+        // Replace placeholder with real OCR/combined text from server
+        if (apiData.analyzed_content) setOriginalContent(apiData.analyzed_content)
       }
       setResult(mapApiResult(apiData) ?? MOCK_RESULT)
       setState('done')

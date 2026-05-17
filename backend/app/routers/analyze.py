@@ -33,6 +33,7 @@ class ThreatReport(BaseModel):
     panic_interrupt: bool
     manipulation_summary: str | None = None
     virustotal: dict | None = None
+    analyzed_content: str | None = None
 
 
 def _safe_int(value, default: int = 0) -> int:
@@ -85,6 +86,7 @@ async def analyze(
         if file is not None:
             ct         = (file.content_type or "").lower()
             file_bytes = await file.read()
+            print(f"[analyze] file: name={file.filename!r}, content_type={ct!r}, size={len(file_bytes)} bytes")
             if ct.startswith("image/"):
                 extraction_coros.append(mistral_svc.extract_image_text(file_bytes, ct))
                 extraction_labels.append("image")
@@ -97,6 +99,7 @@ async def analyze(
         if audio is not None:
             ct          = (audio.content_type or "").lower()
             audio_bytes = await audio.read()
+            print(f"[analyze] audio: name={audio.filename!r}, content_type={ct!r}, size={len(audio_bytes)} bytes")
             extraction_coros.append(mistral_svc.transcribe_audio(audio_bytes, ct or "audio/ogg"))
             extraction_labels.append("audio")
 
@@ -105,7 +108,9 @@ async def analyze(
             extracted = await asyncio.gather(*extraction_coros, return_exceptions=True)
             for label, result in zip(extraction_labels, extracted):
                 if isinstance(result, Exception):
+                    print(f"[analyze] extraction '{label}' FAILED: {result}")
                     continue
+                print(f"[analyze] extraction '{label}' OK — first 200 chars: {repr(str(result)[:200])}")
                 prefix = "[Contenido de imagen]" if label == "image" else "[Transcripción de audio]"
                 text_parts.append(f"{prefix}\n{result}")
 
@@ -134,6 +139,7 @@ async def analyze(
             )
 
         embed_text = "\n\n---\n\n".join(text_parts)
+        print(f"[analyze] embed_text parts={len(text_parts)}, total chars={len(embed_text)}, preview: {repr(embed_text[:300])}")
 
         # ── Threat analysis + emotional scoring + VirusTotal in parallel ─────
         if checked_url:
@@ -203,6 +209,7 @@ async def analyze(
         panic_interrupt     =incident.risk_score > 75,
         manipulation_summary=analysis.get("manipulation_summary"),
         virustotal          =vt_result,
+        analyzed_content    =embed_text[:3000],
     )
 
     incident_payload = {
