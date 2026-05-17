@@ -73,7 +73,7 @@ function IncidentRow({ score, title, location, ago, type }) {
 
 function CampaignBar({ name, count, pct }) {
   return (
-    <div className="flex-1 min-w-0">
+    <div className="min-w-0">
       <div className="flex items-center justify-between mb-1.5 gap-2">
         <span className="text-[11px] text-neutral-300 truncate">{name}</span>
         <span className="text-[11px] font-mono text-amber-400 shrink-0">{count}</span>
@@ -170,14 +170,14 @@ export default function Dashboard() {
   return (
     <div ref={dashRef} className="p-5 flex flex-col gap-3">
       {/* Metrics */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {metrics.map((m) => <MetricCard key={m.id} {...m} />)}
       </div>
 
       {/* Feed + Map */}
-      <div className="flex gap-3" style={{ height: 390 }}>
+      <div className="flex flex-col md:flex-row gap-3 md:h-[390px]">
         {/* Live Feed */}
-        <div className="w-60 shrink-0 flex flex-col gap-0 overflow-y-auto">
+        <div className="md:w-60 shrink-0 flex flex-col gap-0 overflow-y-auto">
           <div className="flex items-center justify-between px-0.5 mb-2 shrink-0">
             <span className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono">
               {t('dash.liveFeed')}
@@ -201,8 +201,8 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Map */}
-        <div className="map-container flex-1 card-base flex flex-col overflow-hidden">
+        {/* Map — hidden on mobile */}
+        <div className="hidden md:flex map-container flex-1 card-base flex-col overflow-hidden">
           <div className="px-3 py-2 border-b border-[#262626] shrink-0 flex items-center justify-between">
             <span className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono">
               {t('dash.threatMap')}
@@ -230,7 +230,7 @@ export default function Dashboard() {
             }
           </div>
         ) : (
-          <div className="flex gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {topCampaigns.map((c) => <CampaignBar key={c.name} {...c} />)}
           </div>
         )}
