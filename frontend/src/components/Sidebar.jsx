@@ -44,7 +44,7 @@ export default function Sidebar() {
       </nav>
 
       <div className="mt-auto px-2 pt-4 border-t border-[#262626]">
-        <p className="text-[10px] text-neutral-600 font-mono">v0.1.0-alpha</p>
+        <p style={{ fontFamily: 'OffBitTrial, monospace', fontSize: '10px', color: '#444', letterSpacing: '0.05em' }}>HAVEN · DEF/ACC · hack@latam 2026</p>
       </div>
     </aside>
   )
