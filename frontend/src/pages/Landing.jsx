@@ -109,6 +109,8 @@ function useWindowWidth() {
 const Nav = ({ navRef }) => {
   const { lang, toggle, t } = useLang()
   const [scrolled, setScrolled] = useState(false)
+  const winW = useWindowWidth()
+  const isMobile = winW < 768
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 50)
@@ -125,7 +127,7 @@ const Nav = ({ navRef }) => {
   return (
     <nav ref={navRef} style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200,
-      height: 60, padding: '0 48px',
+      height: 56, padding: isMobile ? '0 20px' : '0 48px',
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       background: scrolled ? 'rgba(8,8,8,0.92)' : 'transparent',
       backdropFilter: scrolled ? 'blur(12px)' : 'none',
@@ -137,18 +139,20 @@ const Nav = ({ navRef }) => {
         HAVEN
       </Link>
 
-      <div style={{ display: 'flex', gap: 32, fontFamily: GEIST, fontSize: 13, color: C.muted }}>
-        {navLinks.map(([href, label]) => (
-          <a key={href} href={href}
-            style={{ color: 'inherit', textDecoration: 'none', transition: 'color .2s' }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = C.text }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = C.muted }}>
-            {label}
-          </a>
-        ))}
-      </div>
+      {!isMobile && (
+        <div style={{ display: 'flex', gap: 32, fontFamily: GEIST, fontSize: 13, color: C.muted }}>
+          {navLinks.map(([href, label]) => (
+            <a key={href} href={href}
+              style={{ color: 'inherit', textDecoration: 'none', transition: 'color .2s' }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = C.text }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = C.muted }}>
+              {label}
+            </a>
+          ))}
+        </div>
+      )}
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 12 : 20 }}>
         <button
           onClick={toggle}
           aria-label="Toggle language"
@@ -158,7 +162,7 @@ const Nav = ({ navRef }) => {
           <span style={{ color: lang === 'en' ? C.accent : '#555', fontWeight: lang === 'en' ? 600 : 400, transition: 'color .2s' }}>EN</span>
         </button>
         <Link to="/app"
-          style={{ border: '1px solid #2a2a2a', color: C.text, padding: '7px 18px', borderRadius: 4, fontFamily: GEIST, fontSize: 13, textDecoration: 'none', transition: 'border-color .2s, color .2s' }}
+          style={{ border: '1px solid #2a2a2a', color: C.text, padding: isMobile ? '6px 12px' : '7px 18px', borderRadius: 4, fontFamily: GEIST, fontSize: 13, textDecoration: 'none', transition: 'border-color .2s, color .2s' }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.color = C.accent }}
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#2a2a2a'; e.currentTarget.style.color = C.text }}>
           {t('land.nav.openApp')}
@@ -185,7 +189,8 @@ function HeroSection({ stats, incidents, navRef }) {
   const statRef = useRef(null)
 
   const winW = useWindowWidth()
-  const headSize = winW < 768 ? 32 : winW < 1024 ? 42 : 56
+  const isMobile = winW < 768
+  const headSize = isMobile ? 32 : winW < 1024 ? 42 : 56
 
   const points = useMemo(() => incidents
     .filter((i) => i.risk_score > 0 && i.threat_type !== 'unknown')
@@ -282,6 +287,18 @@ function HeroSection({ stats, incidents, navRef }) {
     const nav     = navRef?.current
     if (!wrap || !content) return
 
+    if (window.innerWidth < 768) {
+      gsap.set(nav,     { opacity: 1, y: 0 })
+      gsap.set(content, { opacity: 1, x: 0 })
+      gsap.from([line1.current, line2.current, line3.current], {
+        y: 30, duration: 0.65, stagger: 0.1, ease: 'power3.out', delay: 0.1,
+      })
+      gsap.from([subRef.current, ctaRef.current, statRef.current], {
+        opacity: 0, y: 14, duration: 0.5, stagger: 0.08, delay: 0.35, ease: 'power2.out',
+      })
+      return
+    }
+
     gsap.set(nav,     { opacity: 0, y: -10 })
     gsap.set(content, { opacity: 0, x: -40 })
 
@@ -303,6 +320,7 @@ function HeroSection({ stats, incidents, navRef }) {
         position: 'absolute', top: 0, left: 0,
         width: '100%', height: '100%',
         pointerEvents: 'none', zIndex: 1, willChange: 'transform',
+        display: isMobile ? 'none' : 'block',
       }}>
         <div ref={globeElRef} style={{ width: '100%', height: '100%', pointerEvents: 'auto', overflow: 'visible' }} />
         <div style={{
@@ -313,11 +331,11 @@ function HeroSection({ stats, incidents, navRef }) {
 
       <div ref={contentRef} style={{
         position: 'absolute', top: 0, left: 0,
-        width: '50%', height: '100%',
+        width: isMobile ? '100%' : '50%', height: '100%',
         zIndex: 10, display: 'flex', alignItems: 'center',
-        padding: '80px 0 0 64px', pointerEvents: 'auto',
+        padding: isMobile ? '80px 24px 40px' : '80px 0 0 64px', pointerEvents: 'auto',
       }}>
-        <div style={{ maxWidth: 520 }}>
+        <div style={{ maxWidth: isMobile ? '100%' : 520 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
             <GlobeIcon style={{ color: C.accent, flexShrink: 0 }} width={13} height={13} />
             <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.18em', color: C.accent }}>
@@ -381,6 +399,8 @@ function HeroSection({ stats, incidents, navRef }) {
 function ProblemSection() {
   const { t } = useLang()
   const ref = useRef(null)
+  const winW = useWindowWidth()
+  const isMobile = winW < 768
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -416,33 +436,35 @@ function ProblemSection() {
   return (
     <section ref={ref} id="problem" style={{
       background: C.bg, borderTop: `1px solid ${C.border}`,
-      padding: '120px 64px',
+      padding: isMobile ? '64px 24px' : '120px 64px',
     }}>
       <p style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.18em', color: C.accent, marginBottom: 16 }}>
         {t('land.problem.eyebrow')}
       </p>
-      <h2 style={{ fontFamily: HARMOND, fontWeight: 800, fontSize: 56, color: C.text, marginBottom: 72, lineHeight: 1.08 }}>
+      <h2 style={{ fontFamily: HARMOND, fontWeight: 800, fontSize: isMobile ? 32 : 56, color: C.text, marginBottom: isMobile ? 40 : 72, lineHeight: 1.08 }}>
         {t('land.problem.title')}
       </h2>
 
       <div style={{ maxWidth: 900 }}>
         {STAT_NUMS.map(({ end, prefix, suffix }, i) => (
           <div key={i} className="stat-row" style={{
-            display: 'flex', alignItems: 'center', gap: 40,
-            padding: '32px 0',
+            display: 'flex', flexDirection: isMobile ? 'column' : 'row',
+            alignItems: isMobile ? 'flex-start' : 'center',
+            gap: isMobile ? 12 : 40,
+            padding: isMobile ? '24px 0' : '32px 0',
             borderBottom: i < STAT_NUMS.length - 1 ? `1px solid #0f0f0f` : 'none',
           }}>
-            <div style={{ flexShrink: 0, minWidth: 220, lineHeight: 1 }}>
+            <div style={{ flexShrink: 0, minWidth: isMobile ? 0 : 220, lineHeight: 1 }}>
               <span
                 className="stat-num"
                 data-end={end} data-prefix={prefix} data-suffix={suffix}
-                style={{ fontFamily: OFFBIT, fontWeight: 'bold', fontSize: 48, color: C.accent }}
+                style={{ fontFamily: OFFBIT, fontWeight: 'bold', fontSize: isMobile ? 36 : 48, color: C.accent }}
               />
               {suffix && (
-                <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: 36, color: C.accent }}>{suffix}</span>
+                <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: isMobile ? 28 : 36, color: C.accent }}>{suffix}</span>
               )}
             </div>
-            <div style={{ width: 1, alignSelf: 'stretch', background: C.border, flexShrink: 0 }} />
+            {!isMobile && <div style={{ width: 1, alignSelf: 'stretch', background: C.border, flexShrink: 0 }} />}
             <div>
               <p style={{ fontFamily: GEIST, fontSize: 15, color: C.text, marginBottom: 6, lineHeight: 1.4 }}>{t(`land.stat${i}.label`)}</p>
               <p style={{ fontFamily: GEIST, fontSize: 13, color: '#333', lineHeight: 1.5 }}>{t(`land.stat${i}.ctx`)}</p>
@@ -611,6 +633,8 @@ function GlobeSection({ incidents }) {
 function HowItWorks() {
   const { t } = useLang()
   const ref = useRef(null)
+  const winW = useWindowWidth()
+  const isMobile = winW < 768
 
   const steps = STEP_ICONS.map((s, i) => ({
     ...s,
@@ -631,11 +655,11 @@ function HowItWorks() {
   }, [])
 
   return (
-    <section ref={ref} id="how" style={{ background: C.bg, borderTop: `1px solid ${C.border}`, padding: '120px 64px' }}>
+    <section ref={ref} id="how" style={{ background: C.bg, borderTop: `1px solid ${C.border}`, padding: isMobile ? '64px 24px' : '120px 64px' }}>
       <p style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.18em', color: C.accent, marginBottom: 16 }}>
         {t('land.how.eyebrow')}
       </p>
-      <h2 style={{ fontFamily: HARMOND, fontWeight: 800, fontSize: 52, color: C.text, marginBottom: 64, lineHeight: 1.1 }}>
+      <h2 style={{ fontFamily: HARMOND, fontWeight: 800, fontSize: isMobile ? 32 : 52, color: C.text, marginBottom: isMobile ? 32 : 64, lineHeight: 1.1 }}>
         {t('land.how.title')}
       </h2>
 
@@ -643,24 +667,24 @@ function HowItWorks() {
         {steps.map(({ num, title, desc, Icon }) => (
           <div key={num} className="step-card" style={{
             position: 'relative', overflow: 'hidden',
-            display: 'flex', alignItems: 'center', gap: 40,
-            padding: '36px 48px',
+            display: 'flex', alignItems: 'center', gap: isMobile ? 20 : 40,
+            padding: isMobile ? '24px 20px' : '36px 48px',
             background: C.surface,
             borderLeft: `2px solid ${C.accent}`,
             borderTop: `1px solid ${C.border}`, borderRight: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`,
             borderRadius: 8,
           }}>
             <span style={{
-              position: 'absolute', right: 36, top: '50%', transform: 'translateY(-50%)',
-              fontFamily: HARMOND, fontWeight: 800, fontSize: 120, color: C.border,
+              position: 'absolute', right: isMobile ? 16 : 36, top: '50%', transform: 'translateY(-50%)',
+              fontFamily: HARMOND, fontWeight: 800, fontSize: isMobile ? 72 : 120, color: C.border,
               lineHeight: 1, userSelect: 'none', pointerEvents: 'none',
             }}>
               {num}
             </span>
-            <Icon style={{ color: C.accent, flexShrink: 0 }} width={22} height={22} />
+            <Icon style={{ color: C.accent, flexShrink: 0 }} width={isMobile ? 18 : 22} height={isMobile ? 18 : 22} />
             <div>
-              <h3 style={{ fontFamily: HARMOND, fontWeight: 600, fontSize: 26, color: C.text, marginBottom: 10 }}>{title}</h3>
-              <p style={{ fontFamily: GEIST, fontSize: 15, color: C.muted, lineHeight: 1.75, maxWidth: 600 }}>{desc}</p>
+              <h3 style={{ fontFamily: HARMOND, fontWeight: 600, fontSize: isMobile ? 20 : 26, color: C.text, marginBottom: 8 }}>{title}</h3>
+              <p style={{ fontFamily: GEIST, fontSize: isMobile ? 13 : 15, color: C.muted, lineHeight: 1.75, maxWidth: 600 }}>{desc}</p>
             </div>
           </div>
         ))}
@@ -674,6 +698,8 @@ function HowItWorks() {
 function ScanCard({ Icon, title, body, tryLabel }) {
   const iconRef = useRef(null)
   const [hovered, setHovered] = useState(false)
+  const winW = useWindowWidth()
+  const isMobile = winW < 768
 
   return (
     <div
@@ -681,7 +707,7 @@ function ScanCard({ Icon, title, body, tryLabel }) {
       onMouseLeave={() => { setHovered(false); gsap.to(iconRef.current, { scale: 1,    duration: 0.2,  ease: 'power2.in'  }) }}
       style={{
         background: C.surface, border: `1px solid ${hovered ? C.accent : C.border}`,
-        borderRadius: 8, padding: '36px 32px', transition: 'border-color .25s', cursor: 'default',
+        borderRadius: 8, padding: isMobile ? '24px 20px' : '36px 32px', transition: 'border-color .25s', cursor: 'default',
       }}
     >
       <div ref={iconRef} style={{ display: 'inline-flex', marginBottom: 20, color: hovered ? C.accent : C.muted, transition: 'color .25s' }}>
@@ -703,6 +729,8 @@ function ScanCard({ Icon, title, body, tryLabel }) {
 function WhatYouCanScan() {
   const { t } = useLang()
   const ref = useRef(null)
+  const winW = useWindowWidth()
+  const isMobile = winW < 768
 
   const scanCards = SCAN_CARD_ICONS.map((Icon, i) => ({
     Icon,
@@ -725,14 +753,14 @@ function WhatYouCanScan() {
   }, [])
 
   return (
-    <section ref={ref} style={{ background: C.bg, borderTop: `1px solid ${C.border}`, padding: '120px 64px' }}>
+    <section ref={ref} style={{ background: C.bg, borderTop: `1px solid ${C.border}`, padding: isMobile ? '64px 24px' : '120px 64px' }}>
       <p style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.18em', color: C.accent, marginBottom: 16 }}>
         {t('land.scan.eyebrow')}
       </p>
-      <h2 style={{ fontFamily: HARMOND, fontWeight: 800, fontSize: 52, color: C.text, marginBottom: 64, lineHeight: 1.1 }}>
+      <h2 style={{ fontFamily: HARMOND, fontWeight: 800, fontSize: isMobile ? 32 : 52, color: C.text, marginBottom: isMobile ? 32 : 64, lineHeight: 1.1 }}>
         {t('land.scan.title')}
       </h2>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2,1fr)', gap: 20 }}>
         {scanCards.map((c, i) => (
           <div key={i} className="scan-card-wrap">
             <ScanCard {...c} tryLabel={tryLabel} />
@@ -750,6 +778,8 @@ function FinalCTA() {
   const sectionRef = useRef(null)
   const glowRef    = useRef(null)
   const btnRef     = useRef(null)
+  const winW = useWindowWidth()
+  const isMobile = winW < 768
 
   const ctaFeatures = CTA_FEATURE_ICONS.map((Icon, i) => ({ Icon, label: t(`land.feat${i}`) }))
 
@@ -780,7 +810,7 @@ function FinalCTA() {
     <section ref={sectionRef} id="demo" style={{
       position: 'relative', overflow: 'hidden',
       background: C.bg, borderTop: `1px solid ${C.border}`,
-      padding: '140px 64px',
+      padding: isMobile ? '64px 24px' : '140px 64px',
     }}>
       <div ref={glowRef} style={{
         position: 'absolute', top: '50%', left: '50%',
@@ -790,12 +820,12 @@ function FinalCTA() {
         pointerEvents: 'none',
       }} />
 
-      <div style={{ position: 'relative', display: 'flex', gap: 80, alignItems: 'center' }}>
-        <div style={{ flex: '0 0 60%' }}>
+      <div style={{ position: 'relative', display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 40 : 80, alignItems: isMobile ? 'flex-start' : 'center' }}>
+        <div style={{ flex: isMobile ? 'none' : '0 0 60%', width: isMobile ? '100%' : undefined }}>
           <p style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.18em', color: C.accent, marginBottom: 24 }}>
             {t('land.cta.eyebrow')}
           </p>
-          <h2 style={{ fontFamily: HARMOND, fontWeight: 800, fontStyle: 'italic', fontSize: 52, color: C.text, marginBottom: 20, lineHeight: 1.08 }}>
+          <h2 style={{ fontFamily: HARMOND, fontWeight: 800, fontStyle: 'italic', fontSize: isMobile ? 32 : 52, color: C.text, marginBottom: 20, lineHeight: 1.08 }}>
             <div>
               {lang === 'es' && <span style={{ fontFamily: 'Georgia, serif' }}>¿</span>}
               {t('land.cta.titleLine1')}
@@ -804,7 +834,7 @@ function FinalCTA() {
               {t('land.cta.titleLine2')}<span style={{ fontFamily: 'Georgia, serif' }}>?</span>
             </div>
           </h2>
-          <p style={{ fontFamily: GEIST, fontSize: 16, color: C.muted, maxWidth: 480, lineHeight: 1.75, marginBottom: 44 }}>
+          <p style={{ fontFamily: GEIST, fontSize: isMobile ? 14 : 16, color: C.muted, maxWidth: 480, lineHeight: 1.75, marginBottom: 36 }}>
             {t('land.cta.sub')}
           </p>
           <Link
@@ -813,8 +843,8 @@ function FinalCTA() {
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 10,
               background: C.accent, color: '#080808',
-              padding: '16px 36px', borderRadius: 4,
-              fontFamily: HARMOND, fontWeight: 600, fontSize: 16,
+              padding: isMobile ? '14px 28px' : '16px 36px', borderRadius: 4,
+              fontFamily: HARMOND, fontWeight: 600, fontSize: isMobile ? 14 : 16,
               textDecoration: 'none',
             }}
           >
@@ -823,7 +853,7 @@ function FinalCTA() {
           </Link>
         </div>
 
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: isMobile ? 16 : 24 }}>
           {ctaFeatures.map(({ Icon, label }, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               <Icon style={{ color: C.accent, flexShrink: 0 }} width={16} height={16} />
@@ -839,11 +869,15 @@ function FinalCTA() {
 // ─── Footer ───────────────────────────────────────────────────────────────────
 
 function Footer() {
+  const winW = useWindowWidth()
+  const isMobile = winW < 768
   return (
     <footer style={{ background: C.bg, borderTop: `1px solid ${C.border}` }}>
       <div style={{
-        maxWidth: 1152, margin: '0 auto', padding: '24px 32px',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        maxWidth: 1152, margin: '0 auto', padding: isMobile ? '24px 20px' : '24px 32px',
+        display: 'flex', flexDirection: isMobile ? 'column' : 'row',
+        justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center',
+        gap: isMobile ? 16 : 0,
       }}>
         <p style={{ fontFamily: GEIST, fontSize: 13, color: '#333' }}>
           © 2026{' '}
