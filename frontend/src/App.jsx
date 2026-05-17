@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { LanguageProvider } from './lib/LanguageContext'
 import Sidebar from './components/Sidebar'
@@ -9,17 +10,18 @@ import IntelligenceFeed from './pages/IntelligenceFeed'
 import Alerts from './pages/Alerts'
 
 function AppLayout() {
+  const [menuOpen, setMenuOpen] = useState(false)
   return (
     <div className="flex h-screen bg-[#131313] overflow-hidden">
-      <Sidebar />
+      <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
       <div className="flex flex-col flex-1 min-w-0">
-        <Header />
+        <Header menuOpen={menuOpen} onMenuToggle={() => setMenuOpen((o) => !o)} />
         <main className="flex-1 overflow-y-auto">
           <Routes>
-            <Route index             element={<Dashboard />} />
-            <Route path="scanner"    element={<ThreatScanner />} />
+            <Route index               element={<Dashboard />} />
+            <Route path="scanner"      element={<ThreatScanner />} />
             <Route path="intelligence" element={<IntelligenceFeed />} />
-            <Route path="alerts"     element={<Alerts />} />
+            <Route path="alerts"       element={<Alerts />} />
           </Routes>
         </main>
       </div>
@@ -31,7 +33,7 @@ export default function App() {
   return (
     <LanguageProvider>
       <Routes>
-        <Route path="/"     element={<Landing />} />
+        <Route path="/"      element={<Landing />} />
         <Route path="/app/*" element={<AppLayout />} />
       </Routes>
     </LanguageProvider>
