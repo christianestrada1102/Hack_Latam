@@ -7,7 +7,7 @@ export const translations = {
     'nav.alerts':    'Alertas',
     'nav.tagline':   'inteligencia de amenazas',
 
-    // Page titles (keyed by route pathname)
+    // Page titles (keyed by normalized route — /app prefix stripped)
     'page./':             'Dashboard',
     'page./scanner':      'Escáner de Amenazas',
     'page./intelligence': 'Feed de Inteligencia',
@@ -138,7 +138,7 @@ export const translations = {
     'nav.alerts':    'Alerts',
     'nav.tagline':   'threat intelligence',
 
-    // Page titles
+    // Page titles (keyed by normalized route — /app prefix stripped)
     'page./':             'Dashboard',
     'page./scanner':      'Threat Scanner',
     'page./intelligence': 'Intelligence Feed',

@@ -3,10 +3,10 @@ import { LayoutDashboard, ScanSearch, Radio, Bell } from 'lucide-react'
 import { useLang } from '../lib/LanguageContext'
 
 const NAV = [
-  { to: '/',             icon: LayoutDashboard, key: 'nav.dashboard' },
-  { to: '/scanner',      icon: ScanSearch,      key: 'nav.scanner'   },
-  { to: '/intelligence', icon: Radio,           key: 'nav.intel'     },
-  { to: '/alerts',       icon: Bell,            key: 'nav.alerts'    },
+  { to: '/app',                icon: LayoutDashboard, key: 'nav.dashboard' },
+  { to: '/app/scanner',        icon: ScanSearch,      key: 'nav.scanner'   },
+  { to: '/app/intelligence',   icon: Radio,           key: 'nav.intel'     },
+  { to: '/app/alerts',         icon: Bell,            key: 'nav.alerts'    },
 ]
 
 export default function Sidebar() {
@@ -28,7 +28,7 @@ export default function Sidebar() {
           <NavLink
             key={to}
             to={to}
-            end={to === '/'}
+            end={to === '/app'}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2 text-sm transition-colors border-l-2 ${
                 isActive

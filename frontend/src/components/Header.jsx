@@ -5,7 +5,8 @@ import { useLang } from '../lib/LanguageContext'
 export default function Header() {
   const { pathname } = useLocation()
   const { lang, toggle, t } = useLang()
-  const title = t(`page.${pathname}`) || 'HackLatam'
+  const normalizedPath = pathname.replace(/^\/app/, '') || '/'
+  const title = t(`page.${normalizedPath}`) || 'HackLatam'
 
   return (
     <header className="flex items-center justify-between px-6 h-12 border-b border-[#262626] bg-[#131313] shrink-0">
