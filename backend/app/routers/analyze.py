@@ -206,6 +206,14 @@ async def analyze(
 
         analysis = _merge_emotional(analysis, emotional)
 
+        # Run VT on extracted domains when no URL was supplied
+        if vt_result is None:
+            domains = (analysis.get("entities") or {}).get("domains", [])
+            if domains:
+                domain = domains[0]
+                vt_url = domain if domain.startswith(("http://", "https://")) else f"https://{domain}"
+                vt_result = await vt_svc.check_url(vt_url)
+
         # IP region takes priority; AI detection is the fallback (covers localhost/dev)
         ip_region: str | None = None
         if geo.get("city") and geo.get("country"):
