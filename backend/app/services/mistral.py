@@ -237,8 +237,12 @@ _EXT_MAP = {
 
 async def transcribe_audio(audio_bytes: bytes, mime_type: str = "audio/ogg") -> str:
     """
-    Transcribe audio using Whisper via OpenRouter's dedicated STT endpoint.
-    Returns the raw transcription text.
+    Transcribe audio via OpenRouter.
+
+    Strategy (each failure falls through to the next):
+      1. Multipart POST to /audio/transcriptions  (STT endpoint, whisper-large-v3-turbo)
+      2. Raw-body POST to /audio/transcriptions   (avoid chunked-transfer issues)
+      3. Chat completions with base64 input_audio (last resort)
     """
     if not settings.openrouter_api_key:
         return "[Transcription skipped] Set OPENROUTER_API_KEY to enable audio analysis."
@@ -246,25 +250,69 @@ async def transcribe_audio(audio_bytes: bytes, mime_type: str = "audio/ogg") -> 
     if len(audio_bytes) > 10_000_000:
         return "[Transcription failed: Audio file too large. Max 10MB.]"
 
-    ext = _EXT_MAP.get(mime_type.lower(), "mp3")
+    ext      = _EXT_MAP.get(mime_type.lower(), "mp3")
+    stt_url  = f"{_OPENROUTER_BASE}/audio/transcriptions"
+    or_hdrs  = {
+        "Authorization": f"Bearer {settings.openrouter_api_key}",
+        "HTTP-Referer":  "http://localhost:5173",
+        "X-Title":       "HackLatam",
+    }
+    timeout  = httpx.Timeout(connect=10, read=120, write=60, pool=10)
 
+    # ── Attempt 1: multipart/form-data ───────────────────────────────────────
     try:
-        async with httpx.AsyncClient(
-            timeout=httpx.Timeout(connect=10, read=120, write=60, pool=10)
-        ) as client:
+        async with httpx.AsyncClient(timeout=timeout) as client:
             resp = await client.post(
-                f"{_OPENROUTER_BASE}/audio/transcriptions",
-                headers={
-                    "Authorization": f"Bearer {settings.openrouter_api_key}",
-                    "HTTP-Referer": "http://localhost:5173",
-                    "X-Title":      "HackLatam",
-                },
+                stt_url,
+                headers=or_hdrs,
                 files={"file": (f"audio.{ext}", audio_bytes, mime_type)},
                 data={"model": "openai/whisper-large-v3-turbo"},
             )
-
-        print(f"[transcribe_audio] status={resp.status_code} headers={dict(resp.headers)}")
+        print(f"[transcribe_audio] attempt=multipart status={resp.status_code}")
+        print(f"[transcribe_audio] headers={dict(resp.headers)}")
+        print(f"[transcribe_audio] body_preview={resp.text[:500]!r}")
         resp.raise_for_status()
         return resp.json().get("text", "")
     except Exception as exc:
-        return f"[Transcription failed: {exc}]"
+        print(f"[transcribe_audio] multipart failed: {exc}")
+
+    # ── Attempt 2: raw body (avoids chunked-transfer encoding) ───────────────
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            resp = await client.post(
+                stt_url,
+                headers={**or_hdrs, "Content-Type": mime_type},
+                content=audio_bytes,
+                params={"model": "openai/whisper-large-v3-turbo"},
+            )
+        print(f"[transcribe_audio] attempt=raw status={resp.status_code}")
+        print(f"[transcribe_audio] headers={dict(resp.headers)}")
+        print(f"[transcribe_audio] body_preview={resp.text[:500]!r}")
+        resp.raise_for_status()
+        return resp.json().get("text", "")
+    except Exception as exc:
+        print(f"[transcribe_audio] raw failed: {exc}")
+
+    # ── Attempt 3: chat completions with base64 input_audio ──────────────────
+    try:
+        b64 = base64.standard_b64encode(audio_bytes).decode()
+        messages = [{
+            "role": "user",
+            "content": [
+                {
+                    "type": "input_audio",
+                    "input_audio": {"data": b64, "format": ext},
+                },
+                {
+                    "type": "text",
+                    "text": (
+                        "Transcribe exactly what is said in this audio. "
+                        "Output only the transcription — no commentary, no timestamps."
+                    ),
+                },
+            ],
+        }]
+        print("[transcribe_audio] attempt=chat-base64")
+        return await _or_chat("openai/whisper-large-v3-turbo", messages, timeout=120)
+    except Exception as exc:
+        return f"[Transcription failed after all attempts: {exc}]"
