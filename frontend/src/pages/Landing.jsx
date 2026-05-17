@@ -240,6 +240,13 @@ function HeroSection({ stats, incidents, navRef }) {
     g.controls().enableZoom      = false
     globeRef.current = g
 
+    g.onPointHover(point => { console.log('[Globe] hover:', point) })
+    const tooltipEl = el.querySelector('.scene-tooltip')
+    if (tooltipEl) {
+      tooltipEl.style.zIndex = '9999'
+      tooltipEl.style.pointerEvents = 'none'
+    }
+
     const speedObj = { v: 3 }
     gsap.to(speedObj, {
       delay: 0.6, v: 0.3, duration: 1.2, ease: 'power2.out',
@@ -297,7 +304,7 @@ function HeroSection({ stats, incidents, navRef }) {
         width: '100%', height: '100%',
         pointerEvents: 'none', zIndex: 1, willChange: 'transform',
       }}>
-        <div ref={globeElRef} style={{ width: '100%', height: '100%' }} />
+        <div ref={globeElRef} style={{ width: '100%', height: '100%', pointerEvents: 'auto', overflow: 'visible' }} />
         <div style={{
           position: 'absolute', inset: 0, pointerEvents: 'none',
           background: `linear-gradient(to right, ${C.bg} 0%, ${C.bg}cc 28%, transparent 60%)`,
@@ -518,6 +525,13 @@ function GlobeSection({ incidents }) {
     g.controls().enableZoom      = false
     globeRef.current = g
 
+    g.onPointHover(point => { console.log('[Globe] hover:', point) })
+    const tooltipEl = el.querySelector('.scene-tooltip')
+    if (tooltipEl) {
+      tooltipEl.style.zIndex = '9999'
+      tooltipEl.style.pointerEvents = 'none'
+    }
+
     const ro = new ResizeObserver(() => {
       if (globeRef.current && el) {
         globeRef.current.width(el.clientWidth).height(el.clientHeight)
@@ -582,7 +596,7 @@ function GlobeSection({ incidents }) {
       </div>
 
       <div style={{ flex: 1, position: 'relative', height: isMobile ? 380 : '100%' }}>
-        <div ref={containerRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
+        <div ref={containerRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'auto', overflow: 'visible' }} />
         <div style={{
           position: 'absolute', top: 0, left: 0, width: 80, height: '100%', pointerEvents: 'none',
           background: `linear-gradient(to right, ${C.bg}, transparent)`,
