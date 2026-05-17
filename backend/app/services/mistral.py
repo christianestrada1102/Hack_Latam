@@ -243,10 +243,15 @@ async def transcribe_audio(audio_bytes: bytes, mime_type: str = "audio/ogg") -> 
     if not settings.openrouter_api_key:
         return "[Transcription skipped] Set OPENROUTER_API_KEY to enable audio analysis."
 
+    if len(audio_bytes) > 10_000_000:
+        return "[Transcription failed: Audio file too large. Max 10MB.]"
+
     ext = _EXT_MAP.get(mime_type.lower(), "mp3")
 
     try:
-        async with httpx.AsyncClient(timeout=60) as client:
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(connect=10, read=120, write=60, pool=10)
+        ) as client:
             resp = await client.post(
                 f"{_OPENROUTER_BASE}/audio/transcriptions",
                 headers={
@@ -258,9 +263,8 @@ async def transcribe_audio(audio_bytes: bytes, mime_type: str = "audio/ogg") -> 
                 data={"model": "openai/whisper-1"},
             )
 
-        if resp.status_code != 200:
-            raise Exception(f"STT error {resp.status_code}: {resp.text}")
-
+        print(f"[transcribe_audio] status={resp.status_code} headers={dict(resp.headers)}")
+        resp.raise_for_status()
         return resp.json().get("text", "")
     except Exception as exc:
         return f"[Transcription failed: {exc}]"
