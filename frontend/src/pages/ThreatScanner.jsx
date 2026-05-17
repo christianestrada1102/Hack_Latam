@@ -615,6 +615,7 @@ export default function ThreatScanner() {
   const display = result ?? MOCK_RESULT
 
   return (
+    <>
     <div className="flex h-full min-h-0">
       {/* Left panel */}
       <div className="flex-1 flex flex-col p-5 gap-3 min-w-0 border-r border-[#262626]">
@@ -875,5 +876,6 @@ export default function ThreatScanner() {
     {showCondusef && (
       <CondusefModal display={display} onClose={() => setShowCondusef(false)} />
     )}
+    </>
   )
 }
