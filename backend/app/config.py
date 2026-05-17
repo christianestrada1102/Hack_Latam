@@ -12,7 +12,12 @@ class Settings(BaseSettings):
     alert_phone: str = ""
     virustotal_api_key: str = ""
     groq_api_key: str = ""
-    cors_origins: list[str] = ["http://localhost:5173"]
+    cors_origins: list[str] = [
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://haven-lat.vercel.app",
+        "https://*.vercel.app",
+    ]
 
 
 settings = Settings()
