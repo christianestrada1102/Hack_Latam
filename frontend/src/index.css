@@ -45,6 +45,16 @@
 @tailwind utilities;
 
 @layer base {
+  ::selection {
+    background: rgba(255, 193, 116, 0.25);
+    color: #f0ede8;
+  }
+
+  ::-moz-selection {
+    background: rgba(255, 193, 116, 0.25);
+    color: #f0ede8;
+  }
+
   html {
     font-family: 'Geist', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
