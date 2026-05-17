@@ -135,7 +135,8 @@ function FilterSelect({ options, value, onChange }) {
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="bg-[#1c1b1b] border border-[#262626] text-[11px] text-neutral-400 rounded px-2 py-1.5 font-mono outline-none focus:border-[#383838] cursor-pointer shrink-0"
+      className="bg-[#1c1b1b] border border-[#262626] text-[11px] text-neutral-400 rounded px-2 font-mono outline-none focus:border-[#383838] cursor-pointer shrink-0"
+      style={{ height: 36 }}
     >
       {options.map((o) => (
         <option key={o.value} value={o.value}>{o.label}</option>
@@ -164,8 +165,8 @@ function DetailPanel({ inc, onClose }) {
   const actions = ACTIONS_BY_TYPE[inc.type] ?? DEFAULT_ACTIONS
 
   return (
-    <div className="w-full md:w-[270px] shrink-0 flex flex-col border-t md:border-t-0 md:border-l border-[#262626]">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#262626] shrink-0">
+    <div className="w-full md:w-[320px] md:max-w-[320px] shrink-0 flex flex-col border-t md:border-t-0 md:border-l" style={{ background: '#0f0f0f', borderColor: '#1a1a1a' }}>
+      <div className="flex items-center justify-between px-4 py-3 border-b shrink-0" style={{ borderColor: '#1a1a1a' }}>
         <span className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono">{inc.shortId}</span>
         <button onClick={onClose} className="text-neutral-600 hover:text-neutral-400 transition-colors p-1">
           <X size={12} />
@@ -278,20 +279,18 @@ function IncidentRow({ inc, isSelected, onClick }) {
   return (
     <div
       onClick={onClick}
-      className={`feed-row grid grid-cols-[60px_60px_88px_1fr_115px_52px] px-4 py-3 border-b border-[#1e1e1e] items-center cursor-pointer transition-colors ${
+      className={`feed-row grid grid-cols-[80px_60px_90px_1fr_120px_60px] px-6 py-3 border-b border-[#1e1e1e] items-center cursor-pointer transition-colors ${
         isSelected ? 'bg-[#1f1e1d]' : 'hover:bg-[#191919]'
       }`}
     >
-      <span className="text-[10px] font-mono text-neutral-600">{inc.shortId}</span>
+      <span className="text-[10px] font-mono text-neutral-600 truncate">{inc.shortId}</span>
       <span className="text-[10px] font-mono text-neutral-500">{inc.time}</span>
       <div className="flex flex-col gap-1">
-        <span className={`text-[9px] uppercase tracking-wider font-medium border px-1.5 py-0.5 rounded ${typeBadge(inc.type)}`}>
+        <span className={`text-[9px] uppercase tracking-wider font-medium border px-1.5 py-0.5 rounded w-fit ${typeBadge(inc.type)}`}>
           {inc.type}
         </span>
         {inc.report_count > 0 && (
-          <span className="text-[9px] font-mono" style={{ color: '#f59e0b' }}>
-            ✓ verificado
-          </span>
+          <span className="text-[9px] font-mono" style={{ color: '#f59e0b' }}>✓ verificado</span>
         )}
       </div>
       <div className="min-w-0 pr-3">
@@ -301,9 +300,14 @@ function IncidentRow({ inc, isSelected, onClick }) {
         )}
       </div>
       <span className="text-[11px] text-neutral-500 truncate">{inc.location}</span>
-      <span className="text-[13px] font-mono font-semibold tabular-nums" style={{ color: scoreColor(inc.risk) }}>
-        {inc.risk}
-      </span>
+      <div className="flex flex-col items-end gap-0.5">
+        <span className="text-[13px] font-mono font-semibold tabular-nums leading-none" style={{ color: scoreColor(inc.risk) }}>
+          {inc.risk}
+        </span>
+        <span className="text-[9px] font-mono uppercase tracking-wide" style={{ color: scoreColor(inc.risk), opacity: 0.6 }}>
+          {riskBand(inc.risk)}
+        </span>
+      </div>
     </div>
   )
 }
@@ -533,12 +537,12 @@ export default function IntelligenceFeed() {
   const selectedInc = incidents.find((i) => i.id === selectedId) ?? null
 
   return (
-    <div className="flex flex-col md:flex-row h-full min-h-0">
+    <div className="flex flex-col md:flex-row h-full min-h-0 overflow-x-hidden">
       {/* Main area */}
       <div className="flex-1 flex flex-col min-w-0 border-b md:border-b-0 md:border-r border-[#262626]">
 
-        {/* Filters bar — scrollable on mobile */}
-        <div className="px-4 py-2.5 border-b border-[#262626] flex items-center gap-2 overflow-x-auto shrink-0">
+        {/* Filters bar */}
+        <div className="px-6 border-b border-[#262626] flex items-center gap-2 overflow-x-auto shrink-0" style={{ height: 48 }}>
           <div className="relative flex items-center shrink-0">
             <Search size={11} className="absolute left-2 text-neutral-600 pointer-events-none" strokeWidth={1.5} />
             <input
@@ -546,7 +550,8 @@ export default function IntelligenceFeed() {
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(0) }}
               placeholder={t('intel.search')}
-              className="pl-6 pr-2 py-1.5 bg-[#1c1b1b] border border-[#262626] text-[11px] text-neutral-400 placeholder-neutral-600 rounded font-mono outline-none focus:border-[#383838] w-36 md:w-44"
+              className="pl-6 pr-2 bg-[#1c1b1b] border border-[#262626] text-[11px] text-neutral-400 placeholder-neutral-600 rounded font-mono outline-none focus:border-[#383838] w-36 md:w-44"
+              style={{ height: 36 }}
             />
           </div>
           <Filter size={11} className="text-neutral-600 shrink-0" strokeWidth={1.5} />
@@ -558,7 +563,8 @@ export default function IntelligenceFeed() {
           </span>
           <button
             onClick={() => exportCSV(filtered)}
-            className="flex items-center gap-1.5 text-[10px] font-mono text-neutral-500 hover:text-neutral-300 border border-[#2a2a2a] px-2 py-1.5 rounded transition-colors shrink-0"
+            className="flex items-center gap-1.5 text-[10px] font-mono text-neutral-500 hover:text-neutral-300 border border-[#2a2a2a] px-2 rounded transition-colors shrink-0"
+            style={{ height: 36 }}
           >
             <Download size={10} strokeWidth={1.5} />
             <span className="hidden sm:inline">{t('intel.export')}</span>
@@ -567,7 +573,7 @@ export default function IntelligenceFeed() {
 
         {/* Table header — desktop/tablet only */}
         {!isMobile && (
-          <div className="grid grid-cols-[60px_60px_88px_1fr_115px_52px] px-4 py-2 border-b border-[#262626] shrink-0">
+          <div className="grid grid-cols-[80px_60px_90px_1fr_120px_60px] px-6 py-2 border-b border-[#262626] shrink-0">
             {tableHeaders.map((h) => (
               <span key={h} className="text-[10px] uppercase tracking-widest text-neutral-600 font-mono">{h}</span>
             ))}
@@ -607,7 +613,7 @@ export default function IntelligenceFeed() {
 
         {/* Pagination */}
         {pageCount > 1 && (
-          <div className="px-4 py-2 border-t border-[#262626] flex items-center gap-3 shrink-0">
+          <div className="px-6 py-2 border-t border-[#262626] flex items-center gap-3 shrink-0">
             <button
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={safePage === 0}
@@ -634,7 +640,7 @@ export default function IntelligenceFeed() {
         <DetailPanel inc={selectedInc} onClose={() => setSelectedId(null)} />
       )}
       {!isMobile && !selectedInc && (
-        <div className="hidden md:flex w-[270px] shrink-0 items-center justify-center p-6 text-center border-l border-[#262626]">
+        <div className="hidden md:flex w-[320px] max-w-[320px] shrink-0 items-center justify-center p-6 text-center border-l" style={{ background: '#0f0f0f', borderColor: '#1a1a1a' }}>
           <p className="text-[12px] text-neutral-600">{t('intel.detail.noSelect')}</p>
         </div>
       )}

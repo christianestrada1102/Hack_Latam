@@ -66,7 +66,7 @@ export default function Sidebar({ open, onClose }) {
         ref={sidebarRef}
         className="fixed md:static top-0 left-0 z-50 md:z-auto flex flex-col w-56 h-screen bg-[#1c1b1b] border-r border-[#262626] px-3 py-5 shrink-0"
       >
-        <div className="px-2 mb-8">
+        <div className="px-2 mb-8 pt-5">
           <span style={{ fontFamily: 'Harmond, serif', fontWeight: 800, color: '#ffc174', fontSize: '20px', letterSpacing: '0.05em' }}>
             HAVEN
           </span>
