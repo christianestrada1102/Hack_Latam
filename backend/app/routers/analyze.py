@@ -174,8 +174,15 @@ async def analyze(
     analysis["risk_score"] = base_risk
 
     # ── Embed + similarity ────────────────────────────────────────────────────
-    emb         = await embeddings.generate_embedding(embed_text)
-    similar_ids = await embeddings.find_similar(db, emb) if emb else []
+    emb = await embeddings.generate_embedding(embed_text)
+    if emb:
+        print(f"[analyze] embedding OK — dims={len(emb)}, first3={[round(v,4) for v in emb[:3]]}")
+    else:
+        print("[analyze] embedding is None — skipping similarity search, similar_count=0")
+
+    similar_rows = await embeddings.find_similar(db, emb) if emb else []
+    print(f"[analyze] similar_rows found={len(similar_rows)}, scores={[round(d,4) for _,d in similar_rows]}")
+    similar_ids = [rid for rid, _ in similar_rows]
 
     # ── Persist ───────────────────────────────────────────────────────────────
     incident = Incident(

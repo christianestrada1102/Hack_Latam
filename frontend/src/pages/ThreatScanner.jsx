@@ -74,6 +74,12 @@ function scoreColor(s) {
 const truncateRegion = (r, max = 20) =>
   r ? (r.length > max ? r.slice(0, max) + '…' : r) : null
 
+function similarLabel(count, region) {
+  if (!count) return null
+  const loc = region ? `en ${truncateRegion(region)}` : 'detectados en LATAM'
+  return `${count} casos similares ${loc}`
+}
+
 function parseHighlights(text, entities) {
   if (!text) return [{ text: '', type: null }]
   const { phone, domain, keywords } = entities ?? {}
@@ -764,9 +770,11 @@ export default function ThreatScanner() {
                 <span className="inline-block text-[11px] font-semibold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded uppercase tracking-widest max-w-full truncate">
                   {display.category}
                 </span>
-                <p className="text-[11px] text-neutral-500 font-mono mt-2 truncate">
-                  {display.similar} {t('report.similar')} · {truncateRegion(display.region) ?? 'región desconocida'}
-                </p>
+                {similarLabel(display.similar, display.region) && (
+                  <p className="text-[11px] text-neutral-500 font-mono mt-2 truncate">
+                    {similarLabel(display.similar, display.region)}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -869,9 +877,11 @@ export default function ThreatScanner() {
               </div>
             )}
 
-            <p className="text-center text-[11px] text-neutral-600 font-mono">
-              {display.similar} {t('report.casesIn')} {truncateRegion(display.region) ?? 'región desconocida'}
-            </p>
+            {similarLabel(display.similar, display.region) && (
+              <p className="text-center text-[11px] text-neutral-600 font-mono">
+                {similarLabel(display.similar, display.region)}
+              </p>
+            )}
           </>
         )}
       </div>

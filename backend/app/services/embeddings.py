@@ -44,25 +44,24 @@ async def find_similar(
     db: AsyncSession,
     embedding: list[float],
     limit: int = 5,
-) -> list[str]:
+) -> list[tuple[str, float]]:
     """
-    Return up to `limit` incident IDs ordered by cosine distance (<=>)
-    to the given embedding. Uses pgvector's approximate nearest-neighbor index.
+    Return up to `limit` (id, cosine_distance) pairs ordered by cosine distance.
+    Uses pgvector's approximate nearest-neighbor index.
     """
     if not embedding:
         return []
 
-    # Build literal vector string: [0.12, -0.34, ...]
     vec_str = "[" + ",".join(f"{v:.8f}" for v in embedding) + "]"
 
     result = await db.execute(
         text("""
-            SELECT id::text
+            SELECT id::text, (embedding <=> CAST(:vec AS vector)) AS dist
             FROM   incidents
             WHERE  embedding IS NOT NULL
-            ORDER  BY embedding <=> CAST(:vec AS vector)
+            ORDER  BY dist
             LIMIT  :limit
         """),
         {"vec": vec_str, "limit": limit},
     )
-    return [row[0] for row in result.fetchall()]
+    return [(row[0], float(row[1])) for row in result.fetchall()]
