@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Upload, Link, FileText, Mic, ChevronRight, AlertOctagon, ShieldAlert, CheckCircle } from 'lucide-react'
+import { Upload, Link, FileText, Mic, ChevronRight, AlertOctagon, ShieldAlert, CheckCircle, X, Copy, ExternalLink } from 'lucide-react'
 import { analyzeContent } from '../lib/api'
 import { useLang } from '../lib/LanguageContext'
 
@@ -392,6 +392,139 @@ function AnalyzingPanel() {
   )
 }
 
+function buildReportText(display) {
+  const phones   = display.entities.phones  ?.join(', ')  || '—'
+  const domains  = display.entities.domains ?.join(', ')  || '—'
+  const keywords = display.entities.keywords?.slice(0, 3).join('; ') || '—'
+  return [
+    `Reporte de Fraude Digital`,
+    `─────────────────────────────`,
+    `Tipo:    ${display.category.toUpperCase()}`,
+    `Riesgo:  ${display.score}/100`,
+    ``,
+    `Entidades detectadas:`,
+    `  Teléfonos: ${phones}`,
+    `  Dominios:  ${domains}`,
+    `  Tácticas:  ${keywords}`,
+    ``,
+    `Descripción:`,
+    display.manipulationSummary || 'No disponible.',
+    ``,
+    `Reportar en: https://www.condusef.gob.mx`,
+    `Policía Cibernética: https://www.gob.mx/policiafederal`,
+  ].join('\n')
+}
+
+function CondusefModal({ display, onClose }) {
+  const [copied, setCopied] = useState(false)
+  const reportText = buildReportText(display)
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(reportText)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // fallback: select a textarea
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.75)' }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div
+        className="w-full max-w-md rounded border flex flex-col"
+        style={{ background: '#1c1b1b', borderColor: '#262626' }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: '#262626' }}>
+          <div>
+            <p className="text-sm font-semibold" style={{ color: '#e5e2e1' }}>Reportar este fraude</p>
+            <p className="text-[11px] mt-0.5" style={{ color: '#a08e7a' }}>Comparte esta información con las autoridades</p>
+          </div>
+          <button onClick={onClose} className="transition-colors" style={{ color: '#555' }}>
+            <X size={16} strokeWidth={1.5} />
+          </button>
+        </div>
+
+        {/* Report preview */}
+        <div className="px-5 py-4 flex flex-col gap-3">
+          <div className="flex gap-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-widest font-mono mb-0.5" style={{ color: '#555' }}>Tipo</p>
+              <p className="text-[12px] font-mono uppercase" style={{ color: '#f59e0b' }}>{display.category}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-widest font-mono mb-0.5" style={{ color: '#555' }}>Riesgo</p>
+              <p className="text-[12px] font-mono font-bold" style={{ color: display.score >= 80 ? '#ef4444' : '#f59e0b' }}>{display.score}/100</p>
+            </div>
+          </div>
+
+          {(display.entities.phones?.length > 0 || display.entities.domains?.length > 0) && (
+            <div>
+              <p className="text-[10px] uppercase tracking-widest font-mono mb-1" style={{ color: '#555' }}>Entidades</p>
+              <div className="flex flex-wrap gap-1.5">
+                {display.entities.phones?.map((p) => (
+                  <span key={p} className="text-[10px] font-mono px-1.5 py-0.5 rounded border" style={{ color: '#f59e0b', background: '#f59e0b10', borderColor: '#f59e0b30' }}>{p}</span>
+                ))}
+                {display.entities.domains?.map((d) => (
+                  <span key={d} className="text-[10px] font-mono px-1.5 py-0.5 rounded border" style={{ color: '#ef4444', background: '#ef444410', borderColor: '#ef444430' }}>{d}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {display.manipulationSummary && (
+            <div>
+              <p className="text-[10px] uppercase tracking-widest font-mono mb-1" style={{ color: '#555' }}>Descripción</p>
+              <p className="text-[11px] leading-relaxed" style={{ color: '#a08e7a' }}>{display.manipulationSummary}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="px-5 pb-4 flex flex-col gap-3">
+          <div className="flex gap-2">
+            <button
+              onClick={handleCopy}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded border text-[12px] font-mono transition-colors"
+              style={{ borderColor: '#f59e0b', color: copied ? '#10b981' : '#f59e0b', background: 'transparent' }}
+            >
+              <Copy size={12} strokeWidth={1.5} />
+              {copied ? 'Copiado' : 'Copiar reporte'}
+            </button>
+            <a
+              href="https://www.condusef.gob.mx"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded text-[12px] font-mono transition-colors"
+              style={{ background: '#f59e0b', color: '#131313' }}
+            >
+              <ExternalLink size={12} strokeWidth={2} />
+              Ir a CONDUSEF
+            </a>
+          </div>
+          <p className="text-[10px] leading-relaxed" style={{ color: '#555' }}>
+            También puedes reportar a Policía Cibernética:{' '}
+            <a
+              href="https://www.gob.mx/policiafederal"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+              style={{ color: '#a08e7a' }}
+            >
+              gob.mx/policiafederal
+            </a>
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function ThreatScanner() {
   const { t } = useLang()
   const [activeTab, setActiveTab] = useState('url')
@@ -401,8 +534,9 @@ export default function ThreatScanner() {
   const [state, setState]         = useState('idle')   // idle | analyzing | done
   const [logLines, setLogLines]   = useState([])
   const [result, setResult]       = useState(null)
-  const [savedToDB, setSavedToDB]         = useState(false)
+  const [savedToDB, setSavedToDB]             = useState(false)
   const [originalContent, setOriginalContent] = useState('')
+  const [showCondusef, setShowCondusef]       = useState(false)
 
   const fileRef    = useRef(null)
   const fileObjRef = useRef(null)
@@ -474,6 +608,7 @@ export default function ThreatScanner() {
     setResult(null)
     setSavedToDB(false)
     setOriginalContent('')
+    setShowCondusef(false)
   }
 
   const hasContent = content.trim().length > 0 || fileName
@@ -603,9 +738,18 @@ export default function ThreatScanner() {
             </div>
             <TerminalLog lines={logLines} />
             {state === 'done' && savedToDB && (
-              <div className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-500">
-                <CheckCircle size={12} strokeWidth={1.5} />
-                {t('scanner.savedToDB')}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-500">
+                  <CheckCircle size={12} strokeWidth={1.5} />
+                  {t('scanner.savedToDB')}
+                </div>
+                <button
+                  onClick={() => setShowCondusef(true)}
+                  className="text-[11px] font-mono px-2.5 py-1 rounded border transition-colors"
+                  style={{ color: '#f59e0b', borderColor: '#f59e0b40', background: '#f59e0b08' }}
+                >
+                  Reportar a CONDUSEF
+                </button>
               </div>
             )}
             {state === 'done' && originalContent && (
@@ -727,5 +871,9 @@ export default function ThreatScanner() {
         )}
       </div>
     </div>
+
+    {showCondusef && (
+      <CondusefModal display={display} onClose={() => setShowCondusef(false)} />
+    )}
   )
 }
