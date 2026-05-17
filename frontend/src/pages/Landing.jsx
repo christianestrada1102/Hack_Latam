@@ -13,6 +13,11 @@ import {
   Link2Icon,
   SpeakerLoudIcon,
   GitHubLogoIcon,
+  LinkedInLogoIcon,
+  TwitterLogoIcon,
+  BellIcon,
+  HeartIcon,
+  CheckIcon,
 } from '@radix-ui/react-icons'
 import { getStats, getFeed } from '../lib/api'
 
@@ -21,18 +26,18 @@ gsap.registerPlugin(ScrollTrigger)
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
 const C = {
-  bg:       '#080808',
-  surface:  '#0f0f0f',
-  border:   '#1a1a1a',
-  accent:   '#ffc174',
-  danger:   '#ef4444',
-  text:     '#f0ede8',
-  muted:    '#6b6560',
+  bg:      '#080808',
+  surface: '#0f0f0f',
+  border:  '#1a1a1a',
+  accent:  '#ffc174',
+  danger:  '#ef4444',
+  text:    '#f0ede8',
+  muted:   '#6b6560',
 }
 
-const HARMOND   = "'Harmond', serif"
-const GEIST     = "'Geist Variable', 'Geist', system-ui, sans-serif"
-const MONO      = "'JetBrains Mono', 'Fira Code', monospace"
+const HARMOND = "'Harmond', serif"
+const GEIST   = "'Geist Variable', 'Geist', system-ui, sans-serif"
+const MONO    = "'JetBrains Mono', 'Fira Code', monospace"
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -54,33 +59,44 @@ const GEO = {
   'Medellín':      [ 6.2442,  -75.5812],
 }
 
-const STAT_ITEMS = [
-  { end: 697000000, prefix: '',  suffix: '',     label: 'intentos de phishing en LATAM' },
-  { end: 13500000,  prefix: '',  suffix: '',     label: 'mexicanos víctimas de fraude' },
-  { end: 9,         prefix: '',  suffix: '%',    label: 'que denuncia el fraude' },
-  { end: 8750,      prefix: '$', suffix: ' MXN', label: 'pérdida promedio por caso' },
+const STAT_ROWS = [
+  { end: 697000000, prefix: '', suffix: '',  label: 'intentos de phishing bloqueados en LATAM',  context: 'Solo en 2024, según datos de Kaspersky y CONDUSEF' },
+  { end: 13500000,  prefix: '', suffix: '',  label: 'mexicanos víctimas de phishing',             context: 'El 23% perdió dinero. Promedio: $8,750 MXN por caso' },
+  { end: 9,         prefix: '', suffix: '%', label: 'de víctimas denuncia formalmente',           context: 'El silencio protege a los criminales, no a las víctimas' },
+  { end: 1326,      prefix: '', suffix: '',  label: 'ataques por minuto en la región',            context: 'Chihuahua lidera en fraudes de frontera norte' },
 ]
 
 const STEPS = [
   {
     num: '01', title: 'Analiza', Icon: UploadIcon,
-    desc: 'Sube un screenshot, mensaje, URL o llamada. El pipeline extrae texto con OCR y transcripción Whisper.',
+    desc: 'Sube un screenshot de WhatsApp, un correo sospechoso, una URL o graba una llamada. Mistral Pixtral extrae el texto con OCR. Whisper transcribe el audio.',
   },
   {
     num: '02', title: 'Detecta', Icon: MagnifyingGlassIcon,
-    desc: 'La IA identifica manipulación psicológica, dominios falsos y patrones de fraude conocidos en LATAM.',
+    desc: 'Claude Haiku y Mistral Small analizan el contenido buscando urgencia artificial, suplantación de autoridad y coerción psicológica. VirusTotal verifica dominios en tiempo real.',
   },
   {
     num: '03', title: 'Protege', Icon: LockClosedIcon,
-    desc: 'Tu análisis alimenta la red colectiva que protege a otros usuarios en México, Colombia, Argentina y más.',
+    desc: 'Cada análisis se guarda anónimamente y alimenta la inteligencia colectiva. Si 34 personas en Chihuahua ya reportaron el mismo fraude, tú lo sabes antes de caer.',
+  },
+  {
+    num: '04', title: 'Actúa', Icon: BellIcon,
+    desc: 'Si el riesgo es crítico, el sistema envía alertas SMS a la comunidad regional. Make.com automatiza la respuesta. Zavu entrega la alerta.',
   },
 ]
 
 const SCAN_CARDS = [
-  { Icon: UploadIcon,       title: 'Imagen / Screenshot', body: 'OCR con Mistral Pixtral. Lee texto en screenshots de WhatsApp, SMS o emails.' },
-  { Icon: ChatBubbleIcon,   title: 'Texto / Mensaje',     body: 'Análisis psicológico en tiempo real. Detecta urgencia, coerción y autoridad falsa.' },
-  { Icon: Link2Icon,        title: 'URL / Enlace',         body: 'Verificación con VirusTotal + análisis del contenido real de la página.' },
-  { Icon: SpeakerLoudIcon,  title: 'Audio / Llamada',     body: 'Transcripción con Whisper. Analiza grabaciones de vishing y extorsión.' },
+  { Icon: UploadIcon,      title: 'Imagen / Screenshot', body: 'OCR con Mistral Pixtral. Lee texto en screenshots de WhatsApp, SMS o emails.' },
+  { Icon: ChatBubbleIcon,  title: 'Texto / Mensaje',     body: 'Análisis psicológico en tiempo real. Detecta urgencia, coerción y autoridad falsa.' },
+  { Icon: Link2Icon,       title: 'URL / Enlace',         body: 'Verificación con VirusTotal + análisis del contenido real de la página.' },
+  { Icon: SpeakerLoudIcon, title: 'Audio / Llamada',     body: 'Transcripción con Whisper. Analiza grabaciones de vishing y extorsión.' },
+]
+
+const CTA_FEATURES = [
+  { Icon: CheckIcon,       label: 'Sin registro requerido' },
+  { Icon: LockClosedIcon,  label: '100% anónimo' },
+  { Icon: GlobeIcon,       label: 'Disponible para toda LATAM' },
+  { Icon: HeartIcon,       label: 'Open source y gratuito' },
 ]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -96,12 +112,22 @@ function geocode(region) {
 function scoreColor(s) {
   if (s >= 80) return C.danger
   if (s >= 60) return C.accent
-  return '#6b6560'
+  return C.muted
+}
+
+function useWindowWidth() {
+  const [w, setW] = useState(() => window.innerWidth)
+  useEffect(() => {
+    const fn = () => setW(window.innerWidth)
+    window.addEventListener('resize', fn, { passive: true })
+    return () => window.removeEventListener('resize', fn)
+  }, [])
+  return w
 }
 
 // ─── Nav ──────────────────────────────────────────────────────────────────────
 
-function Nav() {
+const Nav = ({ navRef }) => {
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
@@ -111,7 +137,7 @@ function Nav() {
   }, [])
 
   return (
-    <nav style={{
+    <nav ref={navRef} style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200,
       height: 60, padding: '0 48px',
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -119,7 +145,7 @@ function Nav() {
       backdropFilter: scrolled ? 'blur(12px)' : 'none',
       WebkitBackdropFilter: scrolled ? 'blur(12px)' : 'none',
       borderBottom: '1px solid #1a1a1a',
-      transition: 'background .3s, backdrop-filter .3s',
+      transition: 'background .3s',
     }}>
       <Link to="/" style={{ fontFamily: HARMOND, fontWeight: 600, fontSize: 15, color: C.accent, letterSpacing: '0.12em', textDecoration: 'none' }}>
         HACKLATAM
@@ -137,7 +163,7 @@ function Nav() {
       </div>
 
       <Link to="/app"
-        style={{ border: `1px solid #2a2a2a`, color: C.text, padding: '7px 18px', borderRadius: 4, fontFamily: GEIST, fontSize: 13, textDecoration: 'none', transition: 'border-color .2s, color .2s' }}
+        style={{ border: '1px solid #2a2a2a', color: C.text, padding: '7px 18px', borderRadius: 4, fontFamily: GEIST, fontSize: 13, textDecoration: 'none', transition: 'border-color .2s, color .2s' }}
         onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.color = C.accent }}
         onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#2a2a2a'; e.currentTarget.style.color = C.text }}>
         Abrir app →
@@ -147,22 +173,22 @@ function Nav() {
 }
 
 // ─── Hero + Globe intro ───────────────────────────────────────────────────────
-// Globe renders full-screen first, then shrinks to right panel after 1.8s.
 
-function HeroSection({ stats, incidents }) {
-  const heroRef      = useRef(null)
+function HeroSection({ stats, incidents, navRef }) {
   const contentRef   = useRef(null)
   const globeWrapRef = useRef(null)
   const globeElRef   = useRef(null)
   const globeRef     = useRef(null)
   const introPlayed  = useRef(false)
-
   const line1 = useRef(null)
   const line2 = useRef(null)
   const line3 = useRef(null)
-  const subRef = useRef(null)
-  const ctaRef = useRef(null)
+  const subRef  = useRef(null)
+  const ctaRef  = useRef(null)
   const statRef = useRef(null)
+
+  const winW = useWindowWidth()
+  const headSize = winW < 768 ? 32 : winW < 1024 ? 42 : 56
 
   const points = useMemo(() => incidents
     .filter((i) => i.risk_score > 0 && i.threat_type !== 'unknown')
@@ -178,7 +204,7 @@ function HeroSection({ stats, incidents }) {
     })
     .filter(Boolean), [incidents])
 
-  // Init globe
+  // Init globe — fast spin, then slow down
   useEffect(() => {
     const el = globeElRef.current
     if (!el) return
@@ -210,12 +236,18 @@ function HeroSection({ stats, incidents }) {
 
     g.pointOfView({ lat: 10, lng: -75, altitude: 1.8 })
     g.controls().autoRotate      = true
-    g.controls().autoRotateSpeed = 0.3
+    g.controls().autoRotateSpeed = 3
     g.controls().enableDamping   = true
     g.controls().dampingFactor   = 0.05
     g.controls().enableZoom      = false
-
     globeRef.current = g
+
+    // Slow down after 600ms
+    const speedObj = { v: 3 }
+    gsap.to(speedObj, {
+      delay: 0.6, v: 0.3, duration: 1.2, ease: 'power2.out',
+      onUpdate: () => { if (globeRef.current) globeRef.current.controls().autoRotateSpeed = speedObj.v },
+    })
 
     const ro = new ResizeObserver(() => {
       if (globeRef.current && el) {
@@ -238,58 +270,53 @@ function HeroSection({ stats, incidents }) {
     }
   }, [points])
 
-  // Intro animation: globe full-screen → right panel, content slides in
+  // Intro animation sequence
   useEffect(() => {
     if (introPlayed.current) return
     introPlayed.current = true
 
     const wrap    = globeWrapRef.current
     const content = contentRef.current
+    const nav     = navRef?.current
     if (!wrap || !content) return
 
+    // Hide nav + content initially
+    gsap.set(nav,     { opacity: 0, y: -10 })
     gsap.set(content, { opacity: 0, x: -40 })
 
-    const tl = gsap.timeline({ delay: 1.8 })
+    const tl = gsap.timeline()
 
-    // Globe: animate from full-screen centered to right-panel position
-    tl.to(wrap, {
-      left: '45%', width: '55%',
-      duration: 1.1, ease: 'power3.inOut',
-    }, 0)
+    // Nav fades in at 1000ms
+    tl.to(nav, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }, 1.0)
 
-    // Content fades + slides in from left
-    tl.to(content, {
-      opacity: 1, x: 0,
-      duration: 0.9, ease: 'power3.out',
-    }, 0.35)
+    // Globe moves to right panel at 1200ms
+    tl.to(wrap, { left: '45%', width: '55%', duration: 1.1, ease: 'power3.inOut' }, 1.2)
+
+    // Content slides in from left
+    tl.to(content, { opacity: 1, x: 0, duration: 0.9, ease: 'power3.out' }, 1.55)
 
     // Headline lines stagger up
     tl.from([line1.current, line2.current, line3.current], {
-      y: 56, duration: 0.8, stagger: 0.12, ease: 'power3.out',
-    }, 0.5)
+      y: 50, duration: 0.75, stagger: 0.12, ease: 'power3.out',
+    }, 1.7)
 
-    tl.from(subRef.current, { opacity: 0, y: 20, duration: 0.6, ease: 'power2.out' }, 0.85)
-    tl.from(ctaRef.current,  { opacity: 0, y: 16, duration: 0.5, ease: 'power2.out' }, 1.0)
-    tl.from(statRef.current, { opacity: 0, duration: 0.4 }, 1.2)
-  }, [])
+    tl.from(subRef.current,  { opacity: 0, y: 18, duration: 0.55, ease: 'power2.out' }, 2.1)
+    tl.from(ctaRef.current,  { opacity: 0, y: 14, duration: 0.45, ease: 'power2.out' }, 2.25)
+    tl.from(statRef.current, { opacity: 0, duration: 0.35 }, 2.5)
+  }, [navRef])
 
   return (
-    <section ref={heroRef} style={{
-      position: 'relative', height: '100vh', overflow: 'hidden',
-      background: C.bg,
-    }}>
+    <section style={{ position: 'relative', height: '100vh', overflow: 'hidden', background: C.bg }}>
       {/* Globe wrapper — starts full-screen, animates to right panel */}
       <div ref={globeWrapRef} style={{
         position: 'absolute', top: 0, left: 0,
         width: '100%', height: '100%',
-        pointerEvents: 'none',
-        zIndex: 1,
+        pointerEvents: 'none', zIndex: 1,
       }}>
         <div ref={globeElRef} style={{ width: '100%', height: '100%' }} />
-        {/* Left gradient overlay so globe blends into content */}
         <div style={{
           position: 'absolute', inset: 0, pointerEvents: 'none',
-          background: `linear-gradient(to right, ${C.bg} 0%, ${C.bg}cc 30%, transparent 65%)`,
+          background: `linear-gradient(to right, ${C.bg} 0%, ${C.bg}cc 28%, transparent 60%)`,
         }} />
       </div>
 
@@ -301,16 +328,14 @@ function HeroSection({ stats, incidents }) {
         padding: '80px 0 0 64px', pointerEvents: 'auto',
       }}>
         <div style={{ maxWidth: 520 }}>
-          {/* Label */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
             <GlobeIcon style={{ color: C.accent, flexShrink: 0 }} width={13} height={13} />
             <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.18em', color: C.accent }}>
               INTELIGENCIA DEFENSIVA · LATAM
             </span>
           </div>
 
-          {/* Headline */}
-          <h1 style={{ fontFamily: HARMOND, fontWeight: 800, fontSize: 72, lineHeight: 1.04, marginBottom: 28 }}>
+          <h1 style={{ fontFamily: HARMOND, fontWeight: 800, fontSize: headSize, lineHeight: 1.05, marginBottom: 24 }}>
             <div style={{ overflow: 'hidden' }}>
               <div ref={line1} style={{ color: C.text }}>El fraude digital</div>
             </div>
@@ -322,13 +347,11 @@ function HeroSection({ stats, incidents }) {
             </div>
           </h1>
 
-          {/* Subtext */}
-          <p ref={subRef} style={{ fontFamily: GEIST, fontSize: 16, color: C.muted, maxWidth: 420, lineHeight: 1.7, marginBottom: 36 }}>
+          <p ref={subRef} style={{ fontFamily: GEIST, fontSize: 16, color: C.muted, maxWidth: 420, lineHeight: 1.7, marginBottom: 32 }}>
             Analiza mensajes, imágenes y llamadas sospechosas en segundos. Inteligencia colectiva para toda LATAM.
           </p>
 
-          {/* CTAs */}
-          <div ref={ctaRef} style={{ display: 'flex', gap: 12, marginBottom: 36, flexWrap: 'wrap' }}>
+          <div ref={ctaRef} style={{ display: 'flex', gap: 12, marginBottom: 32, flexWrap: 'wrap' }}>
             <Link to="/app/scanner" style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
               background: C.accent, color: '#080808',
@@ -350,12 +373,11 @@ function HeroSection({ stats, incidents }) {
             </Link>
           </div>
 
-          {/* Live stats */}
           <div ref={statRef} style={{ fontFamily: MONO, fontSize: 12, color: '#333' }}>
             <span style={{ color: C.accent }}>{stats.threats ?? '—'}</span>
-            <span style={{ color: '#2a2a2a' }}> amenazas · </span>
+            <span> amenazas · </span>
             <span style={{ color: C.accent }}>{stats.campaigns ?? '—'}</span>
-            <span style={{ color: '#2a2a2a' }}> campañas · avg </span>
+            <span> campañas · avg </span>
             <span style={{ color: C.accent }}>{stats.avgRisk ?? '—'}</span>
           </div>
         </div>
@@ -371,16 +393,14 @@ function ProblemSection() {
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      // Cards reveal with stagger
-      gsap.utils.toArray('.prob-card').forEach((el, i) => {
+      gsap.utils.toArray('.stat-row').forEach((el, i) => {
         gsap.from(el, {
-          opacity: 0, y: 32, duration: 0.7, ease: 'power3.out',
+          opacity: 0, x: -24, duration: 0.65, ease: 'power3.out',
           scrollTrigger: { trigger: el, start: 'top 80%', once: true },
           delay: i * 0.1,
         })
       })
 
-      // Count-up
       document.querySelectorAll('.stat-num').forEach((el) => {
         const end    = parseFloat(el.dataset.end)
         const prefix = el.dataset.prefix || ''
@@ -407,45 +427,57 @@ function ProblemSection() {
       background: C.bg, borderTop: `1px solid ${C.border}`,
       padding: '120px 64px',
     }}>
-      <p style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.18em', color: C.accent, marginBottom: 16, textAlign: 'center' }}>
+      <p style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.18em', color: C.accent, marginBottom: 16 }}>
         EL PROBLEMA
       </p>
-      <h2 style={{ fontFamily: HARMOND, fontWeight: 800, fontSize: 56, color: C.text, textAlign: 'center', marginBottom: 80, lineHeight: 1.1 }}>
+      <h2 style={{ fontFamily: HARMOND, fontWeight: 800, fontSize: 56, color: C.text, marginBottom: 72, lineHeight: 1.08 }}>
         El fraude digital en LATAM es sistémico.
       </h2>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 20 }}>
-        {STAT_ITEMS.map(({ end, prefix, suffix, label }) => (
-          <div key={label} className="prob-card" style={{
-            background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
-            padding: '36px 28px', textAlign: 'center',
+      <div style={{ maxWidth: 900 }}>
+        {STAT_ROWS.map(({ end, prefix, suffix, label, context }, i) => (
+          <div key={label} className="stat-row" style={{
+            display: 'flex', alignItems: 'center', gap: 40,
+            padding: '32px 0',
+            borderBottom: i < STAT_ROWS.length - 1 ? `1px solid #0f0f0f` : 'none',
           }}>
+            {/* Number */}
             <div
               className="stat-num"
               data-end={end} data-prefix={prefix} data-suffix={suffix}
-              style={{ fontFamily: HARMOND, fontWeight: 800, fontSize: 42, color: C.accent, marginBottom: 14, lineHeight: 1 }}>
+              style={{
+                fontFamily: HARMOND, fontWeight: 800, fontSize: 52,
+                color: C.accent, lineHeight: 1, flexShrink: 0, minWidth: 220,
+              }}>
               {prefix}0{suffix}
             </div>
-            <p style={{ fontFamily: GEIST, fontSize: 13, color: C.muted, lineHeight: 1.6 }}>{label}</p>
+
+            {/* Separator */}
+            <div style={{ width: 1, alignSelf: 'stretch', background: C.border, flexShrink: 0 }} />
+
+            {/* Labels */}
+            <div>
+              <p style={{ fontFamily: GEIST, fontSize: 15, color: C.text, marginBottom: 6, lineHeight: 1.4 }}>{label}</p>
+              <p style={{ fontFamily: GEIST, fontSize: 13, color: '#333', lineHeight: 1.5 }}>{context}</p>
+            </div>
           </div>
         ))}
       </div>
 
-      <p style={{ fontFamily: MONO, fontSize: 11, color: '#2e2e2e', textAlign: 'center', marginTop: 48 }}>
-        Fuente: CONDUSEF · ENVIPE 2025 · The CIU
+      <p style={{ fontFamily: MONO, fontSize: 11, color: '#2a2a2a', marginTop: 48 }}>
+        Fuente: CONDUSEF · ENVIPE 2025 · Kaspersky · The CIU
       </p>
     </section>
   )
 }
 
-// ─── Globe section (fixed height, responsive, no scroll hijack) ───────────────
+// ─── Globe section ────────────────────────────────────────────────────────────
 
 function GlobeSection({ incidents }) {
   const containerRef = useRef(null)
   const globeRef     = useRef(null)
   const [recent, setRecent] = useState([])
-  const [winW, setWinW]     = useState(() => window.innerWidth)
-
+  const winW    = useWindowWidth()
   const isMobile = winW < 768
   const isTablet = winW >= 768 && winW < 1024
   const sidebarW = isMobile ? '100%' : isTablet ? '40%' : '35%'
@@ -467,12 +499,6 @@ function GlobeSection({ incidents }) {
   useEffect(() => {
     setRecent(incidents.filter((i) => i.risk_score > 0 && i.threat_type !== 'unknown').slice(0, 5))
   }, [incidents])
-
-  useEffect(() => {
-    const fn = () => setWinW(window.innerWidth)
-    window.addEventListener('resize', fn, { passive: true })
-    return () => window.removeEventListener('resize', fn)
-  }, [])
 
   useEffect(() => {
     const el = containerRef.current
@@ -537,7 +563,6 @@ function GlobeSection({ incidents }) {
       height: isMobile ? 'auto' : 700,
       overflow: 'hidden',
     }}>
-      {/* Sidebar */}
       <div style={{
         width: sidebarW, flexShrink: 0,
         padding: isMobile ? '32px 24px' : isTablet ? '0 40px' : '0 64px',
@@ -555,10 +580,7 @@ function GlobeSection({ incidents }) {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {recent.map((inc) => (
-            <div key={inc.id} style={{
-              background: '#111111dd', border: `1px solid ${C.border}`,
-              borderRadius: 6, padding: '8px 12px',
-            }}>
+            <div key={inc.id} style={{ background: '#111111dd', border: `1px solid ${C.border}`, borderRadius: 6, padding: '8px 12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
                 <span style={{ fontFamily: MONO, fontSize: 10, color: scoreColor(inc.risk_score), letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                   {inc.threat_type}
@@ -576,7 +598,6 @@ function GlobeSection({ incidents }) {
         </div>
       </div>
 
-      {/* Globe — pointer-events none prevents scroll capture */}
       <div style={{ flex: 1, position: 'relative', height: isMobile ? 380 : '100%' }}>
         <div ref={containerRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
         <div style={{
@@ -611,31 +632,31 @@ function HowItWorks() {
         CÓMO FUNCIONA
       </p>
       <h2 style={{ fontFamily: HARMOND, fontWeight: 800, fontSize: 52, color: C.text, marginBottom: 64, lineHeight: 1.1 }}>
-        Tres pasos para estar protegido.
+        Cuatro pasos para estar protegido.
       </h2>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {STEPS.map(({ num, title, desc, Icon }) => (
           <div key={num} className="step-card" style={{
             position: 'relative', overflow: 'hidden',
             display: 'flex', alignItems: 'center', gap: 40,
             padding: '36px 48px',
-            background: C.surface, borderLeft: `2px solid ${C.accent}`,
+            background: C.surface,
+            borderLeft: `2px solid ${C.accent}`,
             borderTop: `1px solid ${C.border}`, borderRight: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`,
             borderRadius: 8,
           }}>
-            {/* Watermark number */}
             <span style={{
-              position: 'absolute', right: 40, top: '50%', transform: 'translateY(-50%)',
-              fontFamily: HARMOND, fontWeight: 800, fontSize: 130, color: C.border,
+              position: 'absolute', right: 36, top: '50%', transform: 'translateY(-50%)',
+              fontFamily: HARMOND, fontWeight: 800, fontSize: 120, color: C.border,
               lineHeight: 1, userSelect: 'none', pointerEvents: 'none',
             }}>
               {num}
             </span>
             <Icon style={{ color: C.accent, flexShrink: 0 }} width={22} height={22} />
             <div>
-              <h3 style={{ fontFamily: HARMOND, fontWeight: 600, fontSize: 28, color: C.text, marginBottom: 10 }}>{title}</h3>
-              <p style={{ fontFamily: GEIST, fontSize: 15, color: C.muted, lineHeight: 1.7, maxWidth: 580 }}>{desc}</p>
+              <h3 style={{ fontFamily: HARMOND, fontWeight: 600, fontSize: 26, color: C.text, marginBottom: 10 }}>{title}</h3>
+              <p style={{ fontFamily: GEIST, fontSize: 15, color: C.muted, lineHeight: 1.75, maxWidth: 600 }}>{desc}</p>
             </div>
           </div>
         ))}
@@ -647,30 +668,16 @@ function HowItWorks() {
 // ─── What You Can Scan ────────────────────────────────────────────────────────
 
 function ScanCard({ Icon, title, body }) {
-  const cardRef = useRef(null)
   const iconRef = useRef(null)
   const [hovered, setHovered] = useState(false)
 
-  const handleEnter = () => {
-    setHovered(true)
-    gsap.to(iconRef.current, { scale: 1.15, duration: 0.25, ease: 'power2.out' })
-  }
-  const handleLeave = () => {
-    setHovered(false)
-    gsap.to(iconRef.current, { scale: 1, duration: 0.2, ease: 'power2.in' })
-  }
-
   return (
     <div
-      ref={cardRef}
-      onMouseEnter={handleEnter}
-      onMouseLeave={handleLeave}
+      onMouseEnter={() => { setHovered(true);  gsap.to(iconRef.current, { scale: 1.15, duration: 0.25, ease: 'power2.out' }) }}
+      onMouseLeave={() => { setHovered(false); gsap.to(iconRef.current, { scale: 1,    duration: 0.2,  ease: 'power2.in'  }) }}
       style={{
-        background: C.surface,
-        border: `1px solid ${hovered ? C.accent : C.border}`,
-        borderRadius: 8, padding: '36px 32px',
-        transition: 'border-color .25s',
-        cursor: 'default',
+        background: C.surface, border: `1px solid ${hovered ? C.accent : C.border}`,
+        borderRadius: 8, padding: '36px 32px', transition: 'border-color .25s', cursor: 'default',
       }}
     >
       <div ref={iconRef} style={{ display: 'inline-flex', marginBottom: 20, color: hovered ? C.accent : C.muted, transition: 'color .25s' }}>
@@ -679,8 +686,8 @@ function ScanCard({ Icon, title, body }) {
       <h3 style={{ fontFamily: HARMOND, fontWeight: 600, fontSize: 20, color: C.text, marginBottom: 12 }}>{title}</h3>
       <p style={{ fontFamily: GEIST, fontSize: 14, color: C.muted, lineHeight: 1.7 }}>{body}</p>
       <Link to="/app/scanner" style={{
-        display: 'inline-flex', alignItems: 'center', gap: 6,
-        marginTop: 24, fontFamily: MONO, fontSize: 12, color: hovered ? C.accent : '#333',
+        display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 24,
+        fontFamily: MONO, fontSize: 12, color: hovered ? C.accent : '#333',
         textDecoration: 'none', transition: 'color .25s',
       }}>
         Probar <ArrowRightIcon width={11} height={11} />
@@ -696,7 +703,7 @@ function WhatYouCanScan() {
     const ctx = gsap.context(() => {
       gsap.utils.toArray('.scan-card-wrap').forEach((el, i) => {
         gsap.from(el, {
-          opacity: 0, y: 28, duration: 0.65, ease: 'power3.out',
+          opacity: 0, y: 24, duration: 0.6, ease: 'power3.out',
           scrollTrigger: { trigger: el, start: 'top 80%', once: true, toggleActions: 'play none none none' },
           delay: i * 0.08,
         })
@@ -727,7 +734,24 @@ function WhatYouCanScan() {
 // ─── Final CTA ────────────────────────────────────────────────────────────────
 
 function FinalCTA() {
-  const btnRef = useRef(null)
+  const sectionRef = useRef(null)
+  const glowRef    = useRef(null)
+  const btnRef     = useRef(null)
+
+  useEffect(() => {
+    const section = sectionRef.current
+    const glow    = glowRef.current
+    if (!section || !glow) return
+
+    const onMove = (e) => {
+      const rect = section.getBoundingClientRect()
+      const x = e.clientX - rect.left - rect.width  / 2
+      const y = e.clientY - rect.top  - rect.height / 2
+      gsap.to(glow, { x: x * 0.15, y: y * 0.15, duration: 0.6, ease: 'power2.out' })
+    }
+    section.addEventListener('mousemove', onMove)
+    return () => section.removeEventListener('mousemove', onMove)
+  }, [])
 
   useEffect(() => {
     const tween = gsap.to(btnRef.current, {
@@ -738,33 +762,59 @@ function FinalCTA() {
   }, [])
 
   return (
-    <section id="demo" style={{
+    <section ref={sectionRef} id="demo" style={{
+      position: 'relative', overflow: 'hidden',
       background: C.bg, borderTop: `1px solid ${C.border}`,
-      padding: '160px 64px', textAlign: 'center',
+      padding: '140px 64px',
     }}>
-      <p style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.18em', color: C.accent, marginBottom: 28 }}>
-        EMPIEZA AHORA
-      </p>
-      <h2 style={{ fontFamily: HARMOND, fontWeight: 800, fontStyle: 'italic', fontSize: 64, color: C.text, marginBottom: 20, lineHeight: 1.08 }}>
-        ¿Recibiste algo sospechoso?
-      </h2>
-      <p style={{ fontFamily: GEIST, fontSize: 18, color: C.muted, marginBottom: 56 }}>
-        Analízalo gratis. Sin registro. 100% anónimo.
-      </p>
-      <Link
-        ref={btnRef}
-        to="/app/scanner"
-        style={{
-          display: 'inline-flex', alignItems: 'center', gap: 10,
-          background: C.accent, color: '#080808',
-          padding: '18px 52px', borderRadius: 6,
-          fontFamily: HARMOND, fontWeight: 600, fontSize: 18,
-          textDecoration: 'none',
-        }}
-      >
-        Analizar ahora
-        <ArrowRightIcon width={16} height={16} />
-      </Link>
+      {/* Parallax amber glow */}
+      <div ref={glowRef} style={{
+        position: 'absolute', top: '50%', left: '50%',
+        transform: 'translate(-50%,-50%)',
+        width: 600, height: 600, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(255,193,116,0.05) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+
+      <div style={{ position: 'relative', display: 'flex', gap: 80, alignItems: 'center' }}>
+        {/* Left 60% */}
+        <div style={{ flex: '0 0 60%' }}>
+          <p style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.18em', color: C.accent, marginBottom: 24 }}>
+            EMPIEZA AHORA
+          </p>
+          <h2 style={{ fontFamily: HARMOND, fontWeight: 800, fontStyle: 'italic', fontSize: 52, color: C.text, marginBottom: 20, lineHeight: 1.08 }}>
+            <div>¿Recibiste algo</div>
+            <div>sospechoso?</div>
+          </h2>
+          <p style={{ fontFamily: GEIST, fontSize: 16, color: C.muted, maxWidth: 480, lineHeight: 1.75, marginBottom: 44 }}>
+            Analízalo en segundos. Sin registro. Sin datos personales. 100% anónimo. Tu análisis protege a otros en LATAM.
+          </p>
+          <Link
+            ref={btnRef}
+            to="/app/scanner"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 10,
+              background: C.accent, color: '#080808',
+              padding: '16px 36px', borderRadius: 4,
+              fontFamily: HARMOND, fontWeight: 600, fontSize: 16,
+              textDecoration: 'none',
+            }}
+          >
+            Analizar ahora
+            <ArrowRightIcon width={16} height={16} />
+          </Link>
+        </div>
+
+        {/* Right 40% */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {CTA_FEATURES.map(({ Icon, label }) => (
+            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <Icon style={{ color: C.accent, flexShrink: 0 }} width={16} height={16} />
+              <span style={{ fontFamily: GEIST, fontSize: 14, color: C.muted }}>{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </section>
   )
 }
@@ -772,43 +822,40 @@ function FinalCTA() {
 // ─── Footer ───────────────────────────────────────────────────────────────────
 
 function Footer() {
-  const fLink = { color: C.muted, fontFamily: GEIST, fontSize: 13, textDecoration: 'none', display: 'block', transition: 'color .2s' }
-
   return (
-    <footer style={{ background: C.bg, borderTop: `1px solid ${C.border}`, padding: '56px 64px 40px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 48, marginBottom: 48 }}>
-        <div>
-          <p style={{ fontFamily: HARMOND, fontWeight: 600, fontSize: 16, color: C.accent, letterSpacing: '0.12em', marginBottom: 8 }}>
-            HACKLATAM
-          </p>
-          <p style={{ fontFamily: GEIST, fontSize: 12, color: C.muted }}>inteligencia de amenazas</p>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {[['Dashboard', '/app'], ['Escáner', '/app/scanner'], ['Feed de Inteligencia', '/app/intelligence'], ['Alertas', '/app/alerts']].map(([label, to]) => (
-            <Link key={to} to={to} style={fLink}
-              onMouseEnter={(e) => { e.currentTarget.style.color = C.text }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = C.muted }}>
-              {label}
-            </Link>
-          ))}
-        </div>
-
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, color: C.muted }}>
-            <GitHubLogoIcon width={14} height={14} />
-            <span style={{ fontFamily: GEIST, fontSize: 13 }}>Open source · GitHub</span>
-          </div>
-          <p style={{ fontFamily: MONO, fontSize: 12, color: '#2e2e2e', lineHeight: 1.7 }}>
-            Construido para DEF/ACC<br />hack@latam 2025
-          </p>
+    <footer style={{ background: C.bg, borderTop: `1px solid ${C.border}` }}>
+      <div style={{
+        maxWidth: 1152, margin: '0 auto', padding: '24px 32px',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      }}>
+        <p style={{ fontFamily: GEIST, fontSize: 13, color: '#333' }}>
+          © 2026{' '}
+          <span style={{ color: '#a08e7a', fontWeight: 500 }}>Christian Estrada</span>
+        </p>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+          <a href="https://github.com/christianestrada1102" target="_blank" rel="noopener noreferrer"
+            style={{ color: '#444', transition: 'color .2s', display: 'flex' }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = C.text }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = '#444' }}>
+            <GitHubLogoIcon width={15} height={15} />
+          </a>
+          <a href="https://linkedin.com/in/christianestrada" target="_blank" rel="noopener noreferrer"
+            style={{ color: '#444', transition: 'color .2s', display: 'flex' }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = C.text }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = '#444' }}>
+            <LinkedInLogoIcon width={15} height={15} />
+          </a>
+          <a href="https://twitter.com/christianestrada" target="_blank" rel="noopener noreferrer"
+            style={{ color: '#444', transition: 'color .2s', display: 'flex' }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = C.text }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = '#444' }}>
+            <TwitterLogoIcon width={15} height={15} />
+          </a>
         </div>
       </div>
-
-      <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <p style={{ fontFamily: GEIST, fontSize: 11, color: '#2e2e2e' }}>© 2025 HackLatam</p>
-        <p style={{ fontFamily: MONO, fontSize: 11, color: '#222' }}>v0.1.0-alpha</p>
-      </div>
+      <p style={{ fontFamily: GEIST, fontSize: 11, color: '#222', textAlign: 'center', paddingBottom: 16 }}>
+        HackLatam · DEF/ACC · hack@latam 2025
+      </p>
     </footer>
   )
 }
@@ -818,6 +865,7 @@ function Footer() {
 export default function Landing() {
   const [stats, setStats]       = useState({ threats: null, campaigns: null, avgRisk: null })
   const [incidents, setIncidents] = useState([])
+  const navRef = useRef(null)
 
   useEffect(() => {
     const load = async () => {
@@ -836,8 +884,8 @@ export default function Landing() {
 
   return (
     <div style={{ background: C.bg, color: C.text, fontFamily: GEIST, minHeight: '100vh' }}>
-      <Nav />
-      <HeroSection stats={stats} incidents={incidents} />
+      <Nav navRef={navRef} />
+      <HeroSection stats={stats} incidents={incidents} navRef={navRef} />
       <ProblemSection />
       <GlobeSection incidents={incidents} />
       <HowItWorks />
