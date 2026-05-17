@@ -1,14 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Upload, Link, FileText, Mic, ChevronRight, AlertOctagon, ShieldAlert, CheckCircle, X, Copy, ExternalLink } from 'lucide-react'
+import { ChevronRight, AlertOctagon, ShieldAlert, CheckCircle, X, Copy, ExternalLink } from 'lucide-react'
 import { analyzeContent } from '../lib/api'
 import { useLang } from '../lib/LanguageContext'
-
-const TABS = [
-  { id: 'image', i18nKey: 'scanner.tab.image', icon: Upload   },
-  { id: 'url',   i18nKey: 'scanner.tab.url',   icon: Link     },
-  { id: 'text',  i18nKey: 'scanner.tab.text',  icon: FileText },
-  { id: 'audio', i18nKey: 'scanner.tab.audio', icon: Mic      },
-]
 
 // Timing is language-independent; text is resolved via t() at runtime
 const LOG_TIMING = [
@@ -24,13 +17,6 @@ const LOG_TIMING = [
 ]
 
 const ANIMATION_DURATION = LOG_TIMING.at(-1).ms + 400
-
-const DEMO_CONTENT = {
-  image: '[screenshot: bbva-verificacion.mx login form]',
-  url:   'https://bbva-verificacion-cuenta.mx/acceso?token=abc123',
-  text:  'URGENTE: Su cuenta BBVA ha sido bloqueada por actividad sospechosa. Transfiera sus fondos ahora a cuenta segura: 012345678901 para proteger su dinero. Llame 614-822-5511.',
-  audio: '[voice_note_001.ogg — "Soy del IMSS, necesito sus datos urgente"]',
-}
 
 const MOCK_RESULT = {
   score:    88,
@@ -527,82 +513,69 @@ function CondusefModal({ display, onClose }) {
 
 export default function ThreatScanner() {
   const { t } = useLang()
-  const [activeTab, setActiveTab] = useState('url')
-  const [content, setContent]     = useState('')
-  const [fileName, setFileName]   = useState(null)
-  const [isDragging, setIsDragging] = useState(false)
-  const [state, setState]         = useState('idle')   // idle | analyzing | done
-  const [logLines, setLogLines]   = useState([])
-  const [result, setResult]       = useState(null)
-  const [savedToDB, setSavedToDB]             = useState(false)
+  const [imageFile, setImageFile]           = useState(null)
+  const [audioFile, setAudioFile]           = useState(null)
+  const [text, setText]                     = useState('')
+  const [url, setUrl]                       = useState('')
+  const [isDragging, setIsDragging]         = useState(false)
+  const [state, setState]                   = useState('idle')   // idle | analyzing | done
+  const [logLines, setLogLines]             = useState([])
+  const [result, setResult]                 = useState(null)
+  const [savedToDB, setSavedToDB]           = useState(false)
   const [originalContent, setOriginalContent] = useState('')
-  const [showCondusef, setShowCondusef]       = useState(false)
+  const [showCondusef, setShowCondusef]     = useState(false)
 
-  const fileRef    = useRef(null)
-  const fileObjRef = useRef(null)
+  const fileInputRef = useRef(null)
 
-  // contentOverride lets handleDemo pass the value directly,
-  // avoiding stale-closure issues with queued state updates.
-  const runAnalysis = useCallback((contentOverride) => {
-    const raw = typeof contentOverride === 'string' ? contentOverride : (content ?? '')
-    const text = String(raw).trim()
-    setOriginalContent(text)
+  const handleFileChange = (file) => {
+    if (!file) return
+    const ct = file.type || ''
+    if (ct.startsWith('image/'))      setImageFile(file)
+    else if (ct.startsWith('audio/')) setAudioFile(file)
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    setIsDragging(false)
+    Array.from(e.dataTransfer.files).forEach(handleFileChange)
+  }
+
+  const runAnalysis = useCallback(() => {
+    const parts = []
+    if (text.trim())  parts.push(text.trim())
+    if (url.trim())   parts.push(url.trim())
+    if (imageFile)    parts.push(`[Imagen: ${imageFile.name}]`)
+    if (audioFile)    parts.push(`[Audio: ${audioFile.name}]`)
+    setOriginalContent(text.trim() || url.trim() || parts.join('\n'))
 
     setState('analyzing')
     setLogLines([])
     setResult(null)
 
-    // Start terminal animation with translated log lines
     LOG_TIMING.forEach(({ ms, key, color }) => {
       setTimeout(() => setLogLines((prev) => [...prev, { text: t(key), color }]), ms)
     })
 
-    // Build FormData for API
     const formData = new FormData()
-    if (fileObjRef.current) {
-      formData.append('file', fileObjRef.current)
-    } else if (activeTab === 'url') {
-      formData.append('url', text)
-    } else {
-      formData.append('text', text)
-    }
+    if (imageFile)    formData.append('file',  imageFile)
+    if (audioFile)    formData.append('audio', audioFile)
+    if (text.trim())  formData.append('text',  text.trim())
+    if (url.trim())   formData.append('url',   url.trim())
 
-    // Race: animation vs API — show done when both finish
-    const animationDone = new Promise((resolve) =>
-      setTimeout(resolve, ANIMATION_DURATION)
-    )
-    const apiFetch = analyzeContent(formData)
-
-    Promise.allSettled([animationDone, apiFetch]).then(([, apiResult]) => {
+    const animationDone = new Promise((resolve) => setTimeout(resolve, ANIMATION_DURATION))
+    Promise.allSettled([animationDone, analyzeContent(formData)]).then(([, apiResult]) => {
       const apiData = apiResult.status === 'fulfilled' ? apiResult.value : null
-      console.log('[Scanner] analyzeContent returned:', apiData)
-
-      const mapped = apiData ? mapApiResult(apiData) : null
-      console.log('[Scanner] mapApiResult produced:', mapped)
-
       if (apiData) setSavedToDB(true)
-      setResult(mapped ?? MOCK_RESULT)
+      setResult(mapApiResult(apiData) ?? MOCK_RESULT)
       setState('done')
     })
-  }, [activeTab, content, t])
-
-  const handleDemo = () => {
-    const demoContent = DEMO_CONTENT[activeTab]
-    setContent(demoContent)
-    fileObjRef.current = null
-    runAnalysis(demoContent)
-  }
-
-  const handleFile = (file) => {
-    fileObjRef.current = file
-    setFileName(file.name)
-    setContent(file.name)
-  }
+  }, [imageFile, audioFile, text, url, t])
 
   const resetScan = () => {
-    setContent('')
-    setFileName(null)
-    fileObjRef.current = null
+    setImageFile(null)
+    setAudioFile(null)
+    setText('')
+    setUrl('')
     setState('idle')
     setLogLines([])
     setResult(null)
@@ -611,7 +584,7 @@ export default function ThreatScanner() {
     setShowCondusef(false)
   }
 
-  const hasContent = content.trim().length > 0 || fileName
+  const hasContent = text.trim() || url.trim() || imageFile || audioFile
   const display = result ?? MOCK_RESULT
 
   return (
@@ -626,96 +599,118 @@ export default function ThreatScanner() {
           </p>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 border-b border-[#262626] pb-0">
-          {TABS.map(({ id, i18nKey, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => {
-                setActiveTab(id)
-                setContent('')
-                setFileName(null)
-                fileObjRef.current = null
-                setState('idle')
-                setLogLines([])
-                setResult(null)
-              }}
-              className={`flex items-center gap-1.5 px-3 py-2 text-[11px] font-medium border-b-2 transition-colors -mb-px ${
-                activeTab === id
-                  ? 'border-amber-400 text-amber-400'
-                  : 'border-transparent text-neutral-500 hover:text-neutral-300'
-              }`}
-            >
-              <Icon size={12} strokeWidth={2} />
-              {t(i18nKey)}
-            </button>
-          ))}
-        </div>
-
-        {/* Input zone */}
+        {/* Unified input zone */}
         {state === 'idle' && (
-          <div>
-            {(activeTab === 'image' || activeTab === 'audio') ? (
-              <div
-                className={`rounded border-2 border-dashed p-8 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors ${
-                  isDragging ? 'border-amber-400/50 bg-amber-400/5' : 'border-[#2a2a2a] hover:border-[#383838]'
-                }`}
-                onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
-                onDragLeave={() => setIsDragging(false)}
-                onDrop={(e) => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f) }}
-                onClick={() => fileRef.current?.click()}
-              >
-                <input ref={fileRef} type="file" className="hidden"
-                  accept={activeTab === 'image' ? 'image/*' : 'audio/*'}
-                  onChange={(e) => { if (e.target.files[0]) handleFile(e.target.files[0]) }}
-                />
-                {fileName ? (
-                  <p className="text-[12px] text-amber-400 font-mono">{fileName}</p>
-                ) : (
-                  <>
-                    <Upload size={20} className="text-neutral-600" strokeWidth={1.5} />
-                    <p className="text-[12px] text-neutral-500 text-center">
-                      {activeTab === 'image' ? t('scanner.drop.image') : t('scanner.drop.audio')}<br />
-                      <span className="text-neutral-600">{t('scanner.drop.browse')}</span>
-                    </p>
-                  </>
-                )}
+          <div className="flex flex-col gap-3">
+            {/* Drop zone */}
+            <div
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className="rounded flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors"
+              style={{
+                border: `1px dashed ${isDragging ? '#f59e0b80' : '#262626'}`,
+                background: isDragging ? '#f59e0b08' : '#0e0e0e',
+                minHeight: 140,
+                padding: '20px 16px',
+              }}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept="image/*,audio/*"
+                multiple
+                onChange={(e) => Array.from(e.target.files).forEach(handleFileChange)}
+              />
+              <ShieldAlert size={20} strokeWidth={1.5} style={{ color: isDragging ? '#f59e0b' : '#444' }} />
+              <div className="text-center select-none">
+                <p className="text-[12px] font-mono" style={{ color: '#666' }}>Arrastra imagen o audio aquí</p>
+                <p className="text-[11px] font-mono mt-0.5" style={{ color: '#444' }}>o usa las opciones abajo</p>
               </div>
-            ) : (
-              <div>
-                {activeTab === 'url' ? (
-                  <input
-                    type="text"
-                    value={content ?? ''}
-                    onChange={(e) => setContent(e.target.value)}
-                    placeholder={t('scanner.placeholder.url')}
-                    className="w-full bg-[#1c1b1b] border border-[#262626] rounded px-3 py-2.5 text-[12px] font-mono text-neutral-200 placeholder-neutral-600 outline-none focus:border-[#383838]"
-                  />
-                ) : (
-                  <textarea
-                    value={content ?? ''}
-                    onChange={(e) => setContent(e.target.value)}
-                    placeholder={t('scanner.placeholder.text')}
-                    rows={5}
-                    className="w-full bg-[#1c1b1b] border border-[#262626] rounded px-3 py-2.5 text-[12px] font-mono text-neutral-200 placeholder-neutral-600 outline-none focus:border-[#383838] resize-none"
-                  />
+            </div>
+
+            {/* File pills */}
+            {(imageFile || audioFile) && (
+              <div className="flex flex-wrap gap-1.5">
+                {imageFile && (
+                  <div
+                    className="flex items-center gap-1.5 text-[11px] font-mono px-2 py-1 rounded border"
+                    style={{ color: '#f59e0b', borderColor: '#f59e0b30', background: '#f59e0b0a' }}
+                  >
+                    <span className="max-w-[140px] truncate">{imageFile.name}</span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setImageFile(null) }}
+                      className="shrink-0 transition-colors hover:text-red-400"
+                    >
+                      <X size={10} strokeWidth={2} />
+                    </button>
+                  </div>
+                )}
+                {audioFile && (
+                  <div
+                    className="flex items-center gap-1.5 text-[11px] font-mono px-2 py-1 rounded border"
+                    style={{ color: '#a78bfa', borderColor: '#a78bfa30', background: '#a78bfa0a' }}
+                  >
+                    <span className="max-w-[140px] truncate">{audioFile.name}</span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setAudioFile(null) }}
+                      className="shrink-0 transition-colors hover:text-red-400"
+                    >
+                      <X size={10} strokeWidth={2} />
+                    </button>
+                  </div>
                 )}
               </div>
             )}
 
-            <div className="flex items-center gap-2 mt-3">
+            {/* Textarea */}
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Pega el mensaje sospechoso..."
+              className="w-full rounded px-3 py-2.5 text-[12px] font-mono text-neutral-200 placeholder-neutral-600 outline-none focus:border-[#383838]"
+              style={{ height: 100, background: '#0a0a0a', border: '1px solid #262626', resize: 'vertical' }}
+            />
+
+            {/* URL input */}
+            <input
+              type="text"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://enlace-sospechoso..."
+              className="w-full rounded px-3 py-2.5 text-[12px] font-mono text-neutral-200 placeholder-neutral-600 outline-none focus:border-[#383838]"
+              style={{ background: '#0a0a0a', border: '1px solid #262626' }}
+            />
+
+            {/* Action bar */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {imageFile && (
+                  <span
+                    className="text-[10px] font-mono px-2 py-0.5 rounded"
+                    style={{ background: '#f59e0b20', color: '#f59e0b' }}
+                  >
+                    imagen adjunta
+                  </span>
+                )}
+                {audioFile && (
+                  <span
+                    className="text-[10px] font-mono px-2 py-0.5 rounded"
+                    style={{ background: '#a78bfa20', color: '#a78bfa' }}
+                  >
+                    audio adjunto
+                  </span>
+                )}
+              </div>
               <button
                 disabled={!hasContent}
-                onClick={() => runAnalysis()}
-                className="flex items-center gap-1.5 bg-amber-400 text-[#131313] text-[12px] font-semibold px-4 py-2 rounded disabled:opacity-30 hover:bg-amber-300 transition-colors"
+                onClick={runAnalysis}
+                className="flex items-center gap-1.5 text-[12px] font-semibold px-4 py-2 rounded disabled:opacity-30 transition-colors shrink-0"
+                style={{ background: '#f59e0b', color: '#131313' }}
               >
-                {t('scanner.analyze')} <ChevronRight size={13} />
-              </button>
-              <button
-                onClick={handleDemo}
-                className="text-[11px] text-neutral-500 hover:text-neutral-300 transition-colors px-2 py-2"
-              >
-                {t('scanner.demo')}
+                Analizar todo <ChevronRight size={13} />
               </button>
             </div>
           </div>
