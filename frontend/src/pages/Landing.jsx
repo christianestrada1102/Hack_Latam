@@ -193,10 +193,12 @@ function HeroSection({ stats, incidents, navRef }) {
       const coords = geocode(inc.region)
       if (!coords) return null
       return {
-        lat:   coords[0],
-        lng:   coords[1],
-        color: inc.risk_score >= 80 ? '#ef4444' : inc.risk_score >= 60 ? '#ffc174' : '#6b6560',
-        label: `<div style="font:11px monospace;background:#111;border:1px solid #262626;padding:6px 10px;border-radius:4px;color:#f0ede8;pointer-events:none">${inc.threat_type.toUpperCase()}<br/>${inc.region ?? '—'} · <span style="color:${scoreColor(inc.risk_score)}">${inc.risk_score}</span></div>`,
+        lat:         coords[0],
+        lng:         coords[1],
+        color:       inc.risk_score >= 80 ? '#ef4444' : inc.risk_score >= 60 ? '#ffc174' : '#6b6560',
+        threat_type: inc.threat_type,
+        region:      inc.region,
+        risk_score:  inc.risk_score,
       }
     })
     .filter(Boolean), [incidents])
@@ -217,10 +219,10 @@ function HeroSection({ stats, incidents, navRef }) {
       .bumpImageUrl(null)
       .pointsData([])
       .pointAltitude(0)
-      .pointRadius(0.4)
+      .pointRadius(d => d.risk_score >= 80 ? 0.5 : 0.4)
       .pointColor('color')
-      .pointsMerge(true)
-      .pointLabel('label')
+      .pointsMerge(false)
+      .pointLabel(d => `<div style="background:#0f0f0f;border:1px solid #2a2a2a;border-radius:4px;padding:8px 12px;font-family:'Geist',sans-serif;font-size:12px;color:#f0ede8;pointer-events:none"><div style="color:#ffc174;font-size:10px;letter-spacing:0.08em;margin-bottom:4px">${d.threat_type?.toUpperCase()}</div><div style="color:#f0ede8;margin-bottom:2px">${d.region || 'LATAM'}</div><div style="color:#6b6560;font-size:11px">Riesgo: <span style="color:${d.risk_score >= 80 ? '#ef4444' : '#ffc174'}">${d.risk_score}/100</span></div></div>`)
       .pointsTransitionDuration(1200)
       .ringsData([])
       .ringLat('lat')
@@ -467,10 +469,12 @@ function GlobeSection({ incidents }) {
       const coords = geocode(inc.region)
       if (!coords) return null
       return {
-        lat:   coords[0],
-        lng:   coords[1],
-        color: inc.risk_score >= 80 ? '#ef4444' : inc.risk_score >= 60 ? '#ffc174' : '#6b6560',
-        label: `<div style="font:11px monospace;background:#111;border:1px solid #262626;padding:6px 10px;border-radius:4px;color:#f0ede8;pointer-events:none">${inc.threat_type.toUpperCase()}<br/>${inc.region ?? '—'} · <span style="color:${scoreColor(inc.risk_score)}">${inc.risk_score}</span></div>`,
+        lat:         coords[0],
+        lng:         coords[1],
+        color:       inc.risk_score >= 80 ? '#ef4444' : inc.risk_score >= 60 ? '#ffc174' : '#6b6560',
+        threat_type: inc.threat_type,
+        region:      inc.region,
+        risk_score:  inc.risk_score,
       }
     })
     .filter(Boolean), [incidents])
@@ -495,10 +499,10 @@ function GlobeSection({ incidents }) {
       .bumpImageUrl(null)
       .pointsData([])
       .pointAltitude(0)
-      .pointRadius(0.4)
+      .pointRadius(d => d.risk_score >= 80 ? 0.5 : 0.4)
       .pointColor('color')
-      .pointsMerge(true)
-      .pointLabel('label')
+      .pointsMerge(false)
+      .pointLabel(d => `<div style="background:#0f0f0f;border:1px solid #2a2a2a;border-radius:4px;padding:8px 12px;font-family:'Geist',sans-serif;font-size:12px;color:#f0ede8;pointer-events:none"><div style="color:#ffc174;font-size:10px;letter-spacing:0.08em;margin-bottom:4px">${d.threat_type?.toUpperCase()}</div><div style="color:#f0ede8;margin-bottom:2px">${d.region || 'LATAM'}</div><div style="color:#6b6560;font-size:11px">Riesgo: <span style="color:${d.risk_score >= 80 ? '#ef4444' : '#ffc174'}">${d.risk_score}/100</span></div></div>`)
       .pointsTransitionDuration(1200)
       .ringsData([])
       .ringLat('lat')
