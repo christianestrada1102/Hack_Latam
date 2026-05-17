@@ -6,7 +6,20 @@
       "Bash(/c/Users/chris/Desktop/DEV/PROYECTOS/SOS/SOS/sos_backend/Scripts/python.exe --version)",
       "Bash(/c/Users/chris/Desktop/DEV/PROYECTOS/SOS/SOS/sos_backend/Scripts/python.exe -c \"import sys; print\\(sys.base_prefix\\)\")",
       "Bash(git add *)",
-      "Bash(git commit -m '@ *)"
+      "Bash(git commit -m '@ *)",
+      "Bash(git commit -m ' *)",
+      "Bash(npx shadcn@latest init --help)",
+      "Bash(npx shadcn@latest init -t vite --css-variables -y)",
+      "Bash(npx shadcn@latest init -t vite -b radix --css-variables -y)",
+      "Bash(npx shadcn@latest init -t vite -b radix --css-variables -p nova -y)",
+      "Bash(npx vite *)",
+      "Bash(npx shadcn@latest add @mapcn/map)",
+      "Bash(npm install *)",
+      "Bash(node -e \"import\\('gsap/react'\\).then\\(m => console.log\\('useGSAP available:', typeof m.useGSAP\\)\\).catch\\(e => console.log\\('error:', e.message\\)\\)\")",
+      "Bash(npx skills *)",
+      "Bash(node *)",
+      "Bash(npm list *)",
+      "Bash(powershell *)"
     ]
   }
 }

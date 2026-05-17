@@ -856,7 +856,7 @@ function Footer() {
             onMouseLeave={(e) => { e.currentTarget.style.color = '#444' }}>
             <GitHubLogoIcon width={15} height={15} />
           </a>
-          <a href="https://linkedin.com/in/christianestrada" target="_blank" rel="noopener noreferrer"
+          <a href="https://www.linkedin.com/in/christian-estrada-a59130386/" target="_blank" rel="noopener noreferrer"
             style={{ color: '#444', transition: 'color .2s', display: 'flex' }}
             onMouseEnter={(e) => { e.currentTarget.style.color = C.text }}
             onMouseLeave={(e) => { e.currentTarget.style.color = '#444' }}>
@@ -865,7 +865,7 @@ function Footer() {
         </div>
       </div>
       <p style={{ fontFamily: GEIST, fontSize: 11, color: '#222', textAlign: 'center', paddingBottom: 16 }}>
-        HAVEN · DEF/ACC · hack@latam 2025
+        HAVEN · DEF/ACC · hack@latam 2026
       </p>
     </footer>
   )
