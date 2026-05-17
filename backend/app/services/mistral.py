@@ -35,9 +35,10 @@ _ANALYSIS_SCHEMA = """\
   "entities": {
     "phones": ["<phone numbers found>"],
     "domains": ["<domains/URLs found>"],
-    "keywords": ["<manipulation keywords>"]
+    "keywords": ["<FULL SENTENCE describing the manipulation tactic, e.g. 'Usa urgencia artificial para presionar una decision rapida sin dar tiempo a verificar'>"]
   },
-  "recommended_actions": ["<action>"]
+  "recommended_actions": ["<FULL SENTENCE action with explanation why, e.g. 'No hagas clic en ningun enlace del mensaje — los dominios falsos imitan sitios oficiales para robar tus credenciales'>"],
+  "manipulation_summary": "<ONE PARAGRAPH in Spanish explaining what psychological tactics are used and why they are dangerous>"
 }"""
 
 _EMOTIONAL_SCHEMA = """\
@@ -81,6 +82,7 @@ def _empty_analysis() -> dict:
         "region":              None,
         "entities":            {"phones": [], "domains": [], "keywords": []},
         "recommended_actions": ["Configure OPENROUTER_API_KEY para análisis real."],
+        "manipulation_summary": None,
     }
 
 
@@ -154,7 +156,10 @@ async def analyze_text_threat(text: str) -> dict:
         "content": (
             "You are a cybersecurity analyst specializing in digital fraud in Latin America.\n"
             "Analyze the following content for phishing, smishing, vishing, or scam indicators.\n"
-            "Write all recommended_actions in Spanish.\n\n"
+            "Write ALL text fields (keywords, recommended_actions, manipulation_summary) in Spanish.\n"
+            "keywords must be FULL SENTENCES describing each manipulation tactic — not single words.\n"
+            "recommended_actions must be COMPLETE SENTENCES with an explanation of WHY each step matters.\n"
+            "manipulation_summary must be ONE PARAGRAPH explaining what psychological tactics are used and why they are dangerous.\n\n"
             "Return ONLY valid JSON — no markdown, no extra text:\n"
             + _ANALYSIS_SCHEMA
             + "\n\nContent to analyze:\n"

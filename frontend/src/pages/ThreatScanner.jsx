@@ -43,14 +43,15 @@ const MOCK_RESULT = {
   entities: {
     phone:    '+52 614-822-5511',
     domain:   'bbva-verificacion-cuenta.mx',
-    keywords: ['urgente', 'bloqueada', 'transferencia', 'fondos'],
+    keywords: ['Usa urgencia artificial para presionar una decisión rápida sin dar tiempo a verificar', 'Suplanta autoridad bancaria para generar confianza falsa'],
   },
   actions: [
-    'No hagas clic en ningún enlace del mensaje',
-    'Llama directamente a BBVA: 800 226 2663',
-    'Reporta en condusef.gob.mx / CERT-MX',
-    'Bloquea el número remitente',
+    'No hagas clic en ningún enlace del mensaje — los dominios falsos imitan sitios oficiales para robar tus credenciales',
+    'Llama directamente a BBVA al 800 226 2663 para verificar el estado real de tu cuenta',
+    'Reporta el mensaje en condusef.gob.mx / CERT-MX con capturas de pantalla',
+    'Bloquea el número remitente para evitar futuros contactos fraudulentos',
   ],
+  manipulationSummary: 'Este mensaje usa urgencia extrema combinada con amenaza de pérdida de fondos para evitar que verifiques la información con tu banco. La mención de "actividad sospechosa" y la instrucción de transferir dinero inmediatamente son tácticas clásicas de fraude bancario diseñadas para impedir que consultes a familiares o al banco directamente.',
   similar: 34,
   region:  'Chihuahua',
 }
@@ -70,9 +71,10 @@ function mapApiResult(api) {
       domain:   api.entities?.domains?.[0]  ?? '—',
       keywords: api.entities?.keywords      ?? [],
     },
-    actions: api.recommended_actions ?? MOCK_RESULT.actions,
-    similar: api.similar_count ?? 0,
-    region:  api.region ?? null,
+    actions:             api.recommended_actions   ?? MOCK_RESULT.actions,
+    manipulationSummary: api.manipulation_summary   ?? null,
+    similar:             api.similar_count          ?? 0,
+    region:              api.region                 ?? null,
   }
 }
 

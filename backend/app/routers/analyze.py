@@ -30,6 +30,7 @@ class ThreatReport(BaseModel):
     similar_count: int
     recommended_actions: list[str]
     panic_interrupt: bool
+    manipulation_summary: str | None = None
 
 
 def _merge_emotional(analysis: dict, emotional: dict) -> dict:
@@ -156,17 +157,18 @@ async def analyze(
     await db.refresh(incident)
 
     report = ThreatReport(
-        incident_id        =str(incident.id),
-        risk_score         =incident.risk_score,
-        threat_type        =incident.threat_type,
-        emotional_pressure =incident.emotional_pressure,
-        urgency_score      =incident.urgency_score,
-        coercion_score     =incident.coercion_score,
-        authority_score    =incident.authority_score,
-        entities           =incident.entities,
-        similar_count      =incident.similar_count,
-        recommended_actions=analysis.get("recommended_actions", []),
-        panic_interrupt    =incident.risk_score > 75,
+        incident_id         =str(incident.id),
+        risk_score          =incident.risk_score,
+        threat_type         =incident.threat_type,
+        emotional_pressure  =incident.emotional_pressure,
+        urgency_score       =incident.urgency_score,
+        coercion_score      =incident.coercion_score,
+        authority_score     =incident.authority_score,
+        entities            =incident.entities,
+        similar_count       =incident.similar_count,
+        recommended_actions =analysis.get("recommended_actions", []),
+        panic_interrupt     =incident.risk_score > 75,
+        manipulation_summary=analysis.get("manipulation_summary"),
     )
 
     incident_payload = {
