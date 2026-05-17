@@ -105,15 +105,15 @@ async def _or_chat(model: str, messages: list, timeout: int = 30) -> str:
     return resp.json()["choices"][0]["message"]["content"]
 
 
-# ── Image analysis (Pixtral vision) ───────────────────────────────────────────
+# ── Image analysis (Pixtral vision OCR) ──────────────────────────────────────
 
-async def analyze_image_vision(image_bytes: bytes, mime_type: str = "image/png") -> dict:
+async def extract_image_text(image_bytes: bytes, mime_type: str = "image/png") -> str:
     """
-    Send image directly to Pixtral-12b for full threat analysis.
-    Returns a complete analysis dict matching the ThreatReport schema.
+    Use Pixtral-12b to extract all visible text from an image.
+    Returns the raw extracted text for further threat analysis.
     """
     if not settings.openrouter_api_key:
-        return _empty_analysis()
+        return "[Image analysis skipped] Set OPENROUTER_API_KEY to enable."
 
     b64 = base64.standard_b64encode(image_bytes).decode()
 
@@ -127,18 +127,15 @@ async def analyze_image_vision(image_bytes: bytes, mime_type: str = "image/png")
             {
                 "type": "text",
                 "text": (
-                    "You are a cybersecurity analyst specializing in digital fraud in Latin America.\n"
-                    "Analyze this image for phishing, smishing, vishing, or scam indicators.\n"
-                    "Extract all visible phone numbers, domains, URLs, and psychological manipulation tactics.\n\n"
-                    "Return ONLY valid JSON — no markdown, no extra text:\n"
-                    + _ANALYSIS_SCHEMA
+                    "Extract all text from this image. "
+                    "Return every word, number, URL, phone number, and domain visible. "
+                    "Output only the extracted text — no commentary, no formatting."
                 ),
             },
         ],
     }]
 
-    raw = await _or_chat(_PIXTRAL, messages, timeout=60)
-    return _parse_json(raw)
+    return await _or_chat(_PIXTRAL, messages, timeout=60)
 
 
 # ── Text / URL analysis (Mistral Small) ───────────────────────────────────────

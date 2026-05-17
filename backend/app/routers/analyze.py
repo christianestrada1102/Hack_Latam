@@ -68,19 +68,13 @@ async def analyze(
             file_bytes   = await file.read()
 
             if content_type.startswith("image/"):
-                # Pixtral does full vision analysis
-                analysis  = await mistral_svc.analyze_image_vision(file_bytes, content_type)
-                # Build a text summary from extracted entities for Haiku + embedding
-                entities  = analysis.get("entities", {})
-                embed_text = " ".join(filter(None, [
-                    analysis.get("threat_type", ""),
-                    analysis.get("region") or "",
-                    *entities.get("keywords", []),
-                    *entities.get("domains", []),
-                    *entities.get("phones", []),
-                ]))
-                emotional = await mistral_svc.detect_emotional_scores(embed_text)
-                analysis  = _merge_emotional(analysis, emotional)
+                # Pixtral extracts text; Mistral Small + Haiku analyze in parallel
+                embed_text          = await mistral_svc.extract_image_text(file_bytes, content_type)
+                analysis, emotional = await asyncio.gather(
+                    mistral_svc.analyze_text_threat(embed_text),
+                    mistral_svc.detect_emotional_scores(embed_text),
+                )
+                analysis = _merge_emotional(analysis, emotional)
 
             elif content_type.startswith("audio/"):
                 # Transcribe first, then treat transcript like text
