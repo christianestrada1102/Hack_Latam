@@ -60,15 +60,30 @@ def _or_headers() -> dict:
 
 
 def _parse_json(raw: str) -> dict:
-    """Parse JSON from model output, stripping markdown code fences if present."""
+    """Parse JSON from model output, handling markdown fences and leading/trailing text."""
     raw = raw.strip()
+
+    # Strip markdown code fences
     if raw.startswith("```"):
         parts = raw.split("```")
-        content = parts[1]
+        content = parts[1] if len(parts) > 1 else raw
         if content.startswith("json"):
             content = content[4:]
         raw = content.strip()
-    return json.loads(raw)
+
+    # Try direct parse first
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        pass
+
+    # Fall back: find the first { ... } block in the response
+    start = raw.find("{")
+    end   = raw.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        return json.loads(raw[start:end + 1])
+
+    raise json.JSONDecodeError("No JSON object found", raw, 0)
 
 
 def _empty_analysis() -> dict:

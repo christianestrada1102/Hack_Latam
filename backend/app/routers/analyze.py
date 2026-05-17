@@ -33,14 +33,22 @@ class ThreatReport(BaseModel):
     manipulation_summary: str | None = None
 
 
+def _safe_int(value, default: int = 0) -> int:
+    """Convert model output to int safely — handles None, strings, floats."""
+    try:
+        return int(value) if value is not None else default
+    except (TypeError, ValueError):
+        return default
+
+
 def _merge_emotional(analysis: dict, emotional: dict) -> dict:
     """Override emotional scores in analysis with Claude Haiku's output."""
     return {
         **analysis,
         "emotional_pressure": emotional.get("emotional_pressure", analysis.get("emotional_pressure", "low")),
-        "urgency_score":      int(emotional.get("urgency_score",  analysis.get("urgency_score",  0))),
-        "coercion_score":     int(emotional.get("coercion_score", analysis.get("coercion_score", 0))),
-        "authority_score":    int(emotional.get("authority_score",analysis.get("authority_score",0))),
+        "urgency_score":      _safe_int(emotional.get("urgency_score",  analysis.get("urgency_score",  0))),
+        "coercion_score":     _safe_int(emotional.get("coercion_score", analysis.get("coercion_score", 0))),
+        "authority_score":    _safe_int(emotional.get("authority_score",analysis.get("authority_score",0))),
     }
 
 
@@ -133,6 +141,8 @@ async def analyze(
         raise HTTPException(status_code=502, detail=f"AI API error: {exc.response.status_code}")
     except (json.JSONDecodeError, KeyError) as exc:
         raise HTTPException(status_code=502, detail=f"Unexpected AI response: {exc}")
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Analysis failed: {exc}")
 
     # Generate embedding and find similar past incidents
     emb         = await embeddings.generate_embedding(embed_text)
@@ -140,14 +150,14 @@ async def analyze(
 
     # Persist incident
     incident = Incident(
-        threat_type       =analysis.get("threat_type", "unknown"),
+        threat_type       =analysis.get("threat_type") or "unknown",
         region            =analysis.get("region"),
-        risk_score        =int(analysis.get("risk_score", 0)),
-        emotional_pressure=analysis.get("emotional_pressure", "low"),
-        urgency_score     =int(analysis.get("urgency_score", 0)),
-        coercion_score    =int(analysis.get("coercion_score", 0)),
-        authority_score   =int(analysis.get("authority_score", 0)),
-        entities          =analysis.get("entities", {"phones": [], "domains": [], "keywords": []}),
+        risk_score        =_safe_int(analysis.get("risk_score")),
+        emotional_pressure=analysis.get("emotional_pressure") or "low",
+        urgency_score     =_safe_int(analysis.get("urgency_score")),
+        coercion_score    =_safe_int(analysis.get("coercion_score")),
+        authority_score   =_safe_int(analysis.get("authority_score")),
+        entities          =analysis.get("entities") or {"phones": [], "domains": [], "keywords": []},
         raw_content       =embed_text[:4000],
         embedding         =emb,
         similar_count     =len(similar_ids),
