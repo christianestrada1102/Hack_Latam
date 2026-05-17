@@ -122,8 +122,11 @@ export default function Dashboard() {
       if (stats) setApiStats(stats)
 
       if (feed && feed.length > 0) {
+        const validFeed = feed.filter(
+          (inc) => inc.risk_score > 0 && inc.threat_type !== 'unknown'
+        )
         setFeedItems(
-          feed.map((inc) => ({
+          validFeed.map((inc) => ({
             id:       inc.id,
             score:    inc.risk_score,
             title:    inc.entities?.keywords?.length
@@ -134,7 +137,7 @@ export default function Dashboard() {
             type:     inc.threat_type,
           }))
         )
-        setAllIncidents(feed)
+        setAllIncidents(validFeed)
       }
 
       if (camps && camps.length > 0) setCampaigns(camps)

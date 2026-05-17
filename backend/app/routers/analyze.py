@@ -144,10 +144,21 @@ async def analyze(
             for label, result in zip(extraction_labels, extracted):
                 if isinstance(result, Exception):
                     print(f"[analyze] extraction '{label}' FAILED: {result}")
+                    if label == "audio":
+                        raise HTTPException(
+                            status_code=422,
+                            detail="No se pudo transcribir el audio. Verifica que el archivo sea MP3, WAV o M4A y vuelve a intentarlo.",
+                        )
                     continue
-                print(f"[analyze] extraction '{label}' OK — first 200 chars: {repr(str(result)[:200])}")
+                result_str = str(result)
+                print(f"[analyze] extraction '{label}' OK — first 200 chars: {repr(result_str[:200])}")
+                if label == "audio" and "[Transcription failed" in result_str:
+                    raise HTTPException(
+                        status_code=422,
+                        detail="No se pudo transcribir el audio. Verifica que el archivo sea MP3, WAV o M4A y vuelve a intentarlo.",
+                    )
                 prefix = "[Contenido de imagen]" if label == "image" else "[Transcripción de audio]"
-                text_parts.append(f"{prefix}\n{result}")
+                text_parts.append(f"{prefix}\n{result_str}")
 
         # ── Direct text ──────────────────────────────────────────────────────
         if text and text.strip():
