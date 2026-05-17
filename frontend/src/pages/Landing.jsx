@@ -20,6 +20,7 @@ import {
   CheckIcon,
 } from '@radix-ui/react-icons'
 import { getStats, getFeed } from '../lib/api'
+import { useLang } from '../lib/LanguageContext'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -40,7 +41,7 @@ const GEIST   = "'Geist Variable', 'Geist', system-ui, sans-serif"
 const MONO    = "'JetBrains Mono', 'Fira Code', monospace"
 const OFFBIT  = "'OffBitTrial', monospace"
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// ─── Static data (icons/numbers only — text comes from i18n) ─────────────────
 
 const GEO = {
   'Chihuahua':     [28.6353, -106.0889],
@@ -60,45 +61,22 @@ const GEO = {
   'Medellín':      [ 6.2442,  -75.5812],
 }
 
-const STAT_ROWS = [
-  { end: 697000000, prefix: '', suffix: '',  label: 'intentos de phishing bloqueados en LATAM',  context: 'Solo en 2024, según datos de Kaspersky y CONDUSEF' },
-  { end: 13500000,  prefix: '', suffix: '',  label: 'mexicanos víctimas de phishing',             context: 'El 23% perdió dinero. Promedio: $8,750 MXN por caso' },
-  { end: 9,         prefix: '', suffix: '%', label: 'de víctimas denuncia formalmente',           context: 'El silencio protege a los criminales, no a las víctimas' },
-  { end: 1326,      prefix: '', suffix: '',  label: 'ataques por minuto en la región',            context: 'Chihuahua lidera en fraudes de frontera norte' },
+const STAT_NUMS = [
+  { end: 697000000, prefix: '', suffix: '' },
+  { end: 13500000,  prefix: '', suffix: '' },
+  { end: 9,         prefix: '', suffix: '%' },
+  { end: 1326,      prefix: '', suffix: '' },
 ]
 
-const STEPS = [
-  {
-    num: '01', title: 'Analiza', Icon: UploadIcon,
-    desc: 'Sube un screenshot de WhatsApp, un correo sospechoso, una URL o graba una llamada. Mistral Pixtral extrae el texto con OCR. Whisper transcribe y analiza el audio.',
-  },
-  {
-    num: '02', title: 'Detecta', Icon: MagnifyingGlassIcon,
-    desc: 'Claude Haiku y Mistral Small analizan el contenido buscando urgencia artificial, suplantación de autoridad y coerción psicológica. VirusTotal verifica dominios en tiempo real.',
-  },
-  {
-    num: '03', title: 'Protege', Icon: LockClosedIcon,
-    desc: 'Cada análisis se guarda anónimamente y alimenta la inteligencia colectiva. Si 34 personas en Chihuahua ya reportaron el mismo fraude, tú lo sabes antes de caer.',
-  },
-  {
-    num: '04', title: 'Actúa', Icon: BellIcon,
-    desc: 'Si el riesgo es crítico, el sistema envía alertas SMS a la comunidad regional. Make.com automatiza la respuesta. Zavu entrega la alerta.',
-  },
+const STEP_ICONS = [
+  { num: '01', Icon: UploadIcon },
+  { num: '02', Icon: MagnifyingGlassIcon },
+  { num: '03', Icon: LockClosedIcon },
+  { num: '04', Icon: BellIcon },
 ]
 
-const SCAN_CARDS = [
-  { Icon: UploadIcon,      title: 'Imagen / Screenshot', body: 'OCR con Mistral Pixtral. Lee texto en screenshots de WhatsApp, SMS o emails.' },
-  { Icon: ChatBubbleIcon,  title: 'Texto / Mensaje',     body: 'Análisis psicológico en tiempo real. Detecta urgencia, coerción y autoridad falsa.' },
-  { Icon: Link2Icon,       title: 'URL / Enlace',         body: 'Verificación con VirusTotal + análisis del contenido real de la página.' },
-  { Icon: SpeakerLoudIcon, title: 'Audio / Llamada',     body: 'Transcripción con Whisper. Analiza grabaciones de vishing y extorsión.' },
-]
-
-const CTA_FEATURES = [
-  { Icon: CheckIcon,       label: 'Sin registro requerido' },
-  { Icon: LockClosedIcon,  label: '100% anónimo' },
-  { Icon: GlobeIcon,       label: 'Disponible para toda LATAM' },
-  { Icon: HeartIcon,       label: 'Open source y gratuito' },
-]
+const SCAN_CARD_ICONS = [UploadIcon, ChatBubbleIcon, Link2Icon, SpeakerLoudIcon]
+const CTA_FEATURE_ICONS = [CheckIcon, LockClosedIcon, GlobeIcon, HeartIcon]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -129,6 +107,7 @@ function useWindowWidth() {
 // ─── Nav ──────────────────────────────────────────────────────────────────────
 
 const Nav = ({ navRef }) => {
+  const { lang, toggle, t } = useLang()
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
@@ -136,6 +115,12 @@ const Nav = ({ navRef }) => {
     window.addEventListener('scroll', fn, { passive: true })
     return () => window.removeEventListener('scroll', fn)
   }, [])
+
+  const navLinks = [
+    ['#problem', t('land.nav.problem')],
+    ['#how',     t('land.nav.how')],
+    ['#demo',    t('land.nav.demo')],
+  ]
 
   return (
     <nav ref={navRef} style={{
@@ -153,7 +138,7 @@ const Nav = ({ navRef }) => {
       </Link>
 
       <div style={{ display: 'flex', gap: 32, fontFamily: GEIST, fontSize: 13, color: C.muted }}>
-        {[['#problem', 'El problema'], ['#how', 'Cómo funciona'], ['#demo', 'Demo']].map(([href, label]) => (
+        {navLinks.map(([href, label]) => (
           <a key={href} href={href}
             style={{ color: 'inherit', textDecoration: 'none', transition: 'color .2s' }}
             onMouseEnter={(e) => { e.currentTarget.style.color = C.text }}
@@ -163,12 +148,22 @@ const Nav = ({ navRef }) => {
         ))}
       </div>
 
-      <Link to="/app"
-        style={{ border: '1px solid #2a2a2a', color: C.text, padding: '7px 18px', borderRadius: 4, fontFamily: GEIST, fontSize: 13, textDecoration: 'none', transition: 'border-color .2s, color .2s' }}
-        onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.color = C.accent }}
-        onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#2a2a2a'; e.currentTarget.style.color = C.text }}>
-        Abrir app →
-      </Link>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+        <button
+          onClick={toggle}
+          aria-label="Toggle language"
+          style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: MONO, fontSize: 11, letterSpacing: '0.1em' }}>
+          <span style={{ color: lang === 'es' ? C.accent : '#555', fontWeight: lang === 'es' ? 600 : 400, transition: 'color .2s' }}>ES</span>
+          <span style={{ color: '#2a2a2a' }}>|</span>
+          <span style={{ color: lang === 'en' ? C.accent : '#555', fontWeight: lang === 'en' ? 600 : 400, transition: 'color .2s' }}>EN</span>
+        </button>
+        <Link to="/app"
+          style={{ border: '1px solid #2a2a2a', color: C.text, padding: '7px 18px', borderRadius: 4, fontFamily: GEIST, fontSize: 13, textDecoration: 'none', transition: 'border-color .2s, color .2s' }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.color = C.accent }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#2a2a2a'; e.currentTarget.style.color = C.text }}>
+          {t('land.nav.openApp')}
+        </Link>
+      </div>
     </nav>
   )
 }
@@ -176,6 +171,7 @@ const Nav = ({ navRef }) => {
 // ─── Hero + Globe intro ───────────────────────────────────────────────────────
 
 function HeroSection({ stats, incidents, navRef }) {
+  const { t } = useLang()
   const contentRef   = useRef(null)
   const globeWrapRef = useRef(null)
   const globeElRef   = useRef(null)
@@ -205,7 +201,6 @@ function HeroSection({ stats, incidents, navRef }) {
     })
     .filter(Boolean), [incidents])
 
-  // Init globe — fast spin, then slow down
   useEffect(() => {
     const el = globeElRef.current
     if (!el) return
@@ -243,7 +238,6 @@ function HeroSection({ stats, incidents, navRef }) {
     g.controls().enableZoom      = false
     globeRef.current = g
 
-    // Slow down after 600ms
     const speedObj = { v: 3 }
     gsap.to(speedObj, {
       delay: 0.6, v: 0.3, duration: 1.2, ease: 'power2.out',
@@ -264,14 +258,12 @@ function HeroSection({ stats, incidents, navRef }) {
     }
   }, [])
 
-  // Update points + rings
   useEffect(() => {
     if (globeRef.current && points.length > 0) {
       globeRef.current.pointsData(points).ringsData(points)
     }
   }, [points])
 
-  // Intro animation sequence
   useEffect(() => {
     if (introPlayed.current) return
     introPlayed.current = true
@@ -281,26 +273,16 @@ function HeroSection({ stats, incidents, navRef }) {
     const nav     = navRef?.current
     if (!wrap || !content) return
 
-    // Hide nav + content initially
     gsap.set(nav,     { opacity: 0, y: -10 })
     gsap.set(content, { opacity: 0, x: -40 })
 
     const tl = gsap.timeline()
-
-    // Nav fades in at 1000ms
     tl.to(nav, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }, 1.0)
-
-    // Globe moves to right panel at 1200ms
     tl.to(wrap, { left: '45%', width: '55%', duration: 1.1, ease: 'power3.inOut' }, 1.2)
-
-    // Content slides in from left
     tl.to(content, { opacity: 1, x: 0, duration: 0.9, ease: 'power3.out' }, 1.55)
-
-    // Headline lines stagger up
     tl.from([line1.current, line2.current, line3.current], {
       y: 50, duration: 0.75, stagger: 0.12, ease: 'power3.out',
     }, 1.7)
-
     tl.from(subRef.current,  { opacity: 0, y: 18, duration: 0.55, ease: 'power2.out' }, 2.1)
     tl.from(ctaRef.current,  { opacity: 0, y: 14, duration: 0.45, ease: 'power2.out' }, 2.25)
     tl.from(statRef.current, { opacity: 0, duration: 0.35 }, 2.5)
@@ -308,7 +290,6 @@ function HeroSection({ stats, incidents, navRef }) {
 
   return (
     <section style={{ position: 'relative', height: '100vh', overflow: 'hidden', background: C.bg }}>
-      {/* Globe wrapper — starts full-screen, animates to right panel */}
       <div ref={globeWrapRef} style={{
         position: 'absolute', top: 0, left: 0,
         width: '100%', height: '100%',
@@ -321,7 +302,6 @@ function HeroSection({ stats, incidents, navRef }) {
         }} />
       </div>
 
-      {/* Hero content — left panel */}
       <div ref={contentRef} style={{
         position: 'absolute', top: 0, left: 0,
         width: '50%', height: '100%',
@@ -332,24 +312,24 @@ function HeroSection({ stats, incidents, navRef }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
             <GlobeIcon style={{ color: C.accent, flexShrink: 0 }} width={13} height={13} />
             <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.18em', color: C.accent }}>
-              INTELIGENCIA DEFENSIVA · LATAM
+              {t('land.hero.eyebrow')}
             </span>
           </div>
 
           <h1 style={{ fontFamily: HARMOND, fontWeight: 800, fontSize: headSize, lineHeight: 1.05, marginBottom: 24 }}>
             <div style={{ overflow: 'hidden' }}>
-              <div ref={line1} style={{ color: C.text }}>El fraude digital</div>
+              <div ref={line1} style={{ color: C.text }}>{t('land.hero.line1')}</div>
             </div>
             <div style={{ overflow: 'hidden' }}>
-              <div ref={line2} style={{ color: C.text }}>no avisa.</div>
+              <div ref={line2} style={{ color: C.text }}>{t('land.hero.line2')}</div>
             </div>
             <div style={{ overflow: 'hidden' }}>
-              <div ref={line3} style={{ color: C.accent }}>Tú sí puedes.</div>
+              <div ref={line3} style={{ color: C.accent }}>{t('land.hero.line3')}</div>
             </div>
           </h1>
 
           <p ref={subRef} style={{ fontFamily: GEIST, fontSize: 16, color: C.muted, maxWidth: 420, lineHeight: 1.7, marginBottom: 32 }}>
-            Analiza mensajes, imágenes y llamadas sospechosas en segundos. Inteligencia colectiva para toda LATAM.
+            {t('land.hero.sub')}
           </p>
 
           <div ref={ctaRef} style={{ display: 'flex', gap: 12, marginBottom: 32, flexWrap: 'wrap' }}>
@@ -359,7 +339,7 @@ function HeroSection({ stats, incidents, navRef }) {
               padding: '13px 26px', borderRadius: 4,
               fontFamily: GEIST, fontWeight: 700, fontSize: 14, textDecoration: 'none',
             }}>
-              Analizar amenaza
+              {t('land.hero.cta1')}
               <ArrowRightIcon width={14} height={14} />
             </Link>
             <Link to="/app" style={{
@@ -370,15 +350,15 @@ function HeroSection({ stats, incidents, navRef }) {
             }}
               onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#444' }}
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#2a2a2a' }}>
-              Ver dashboard
+              {t('land.hero.cta2')}
             </Link>
           </div>
 
           <div ref={statRef} style={{ fontFamily: MONO, fontSize: 12, color: '#333' }}>
             <span style={{ fontFamily: OFFBIT, fontSize: 14, color: C.accent }}>{stats.threats ?? '—'}</span>
-            <span> amenazas · </span>
+            <span> {t('land.hero.threats')} · </span>
             <span style={{ fontFamily: OFFBIT, fontSize: 14, color: C.accent }}>{stats.campaigns ?? '—'}</span>
-            <span> campañas · avg </span>
+            <span> {t('land.hero.campaigns')} · avg </span>
             <span style={{ fontFamily: OFFBIT, fontSize: 14, color: C.accent }}>{stats.avgRisk ?? '—'}</span>
           </div>
         </div>
@@ -390,6 +370,7 @@ function HeroSection({ stats, incidents, navRef }) {
 // ─── Problem ──────────────────────────────────────────────────────────────────
 
 function ProblemSection() {
+  const { t } = useLang()
   const ref = useRef(null)
 
   useEffect(() => {
@@ -405,7 +386,8 @@ function ProblemSection() {
       document.querySelectorAll('.stat-num').forEach((el) => {
         const end    = parseFloat(el.dataset.end)
         const prefix = el.dataset.prefix || ''
-        const obj    = { v: 0 }
+        el.textContent = prefix + '0'
+        const obj = { v: 0 }
         ScrollTrigger.create({
           trigger: el, start: 'top 80%', once: true,
           onEnter() {
@@ -428,46 +410,40 @@ function ProblemSection() {
       padding: '120px 64px',
     }}>
       <p style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.18em', color: C.accent, marginBottom: 16 }}>
-        EL PROBLEMA
+        {t('land.problem.eyebrow')}
       </p>
       <h2 style={{ fontFamily: HARMOND, fontWeight: 800, fontSize: 56, color: C.text, marginBottom: 72, lineHeight: 1.08 }}>
-        El fraude digital en LATAM es sistémico.
+        {t('land.problem.title')}
       </h2>
 
       <div style={{ maxWidth: 900 }}>
-        {STAT_ROWS.map(({ end, prefix, suffix, label, context }, i) => (
-          <div key={label} className="stat-row" style={{
+        {STAT_NUMS.map(({ end, prefix, suffix }, i) => (
+          <div key={i} className="stat-row" style={{
             display: 'flex', alignItems: 'center', gap: 40,
             padding: '32px 0',
-            borderBottom: i < STAT_ROWS.length - 1 ? `1px solid #0f0f0f` : 'none',
+            borderBottom: i < STAT_NUMS.length - 1 ? `1px solid #0f0f0f` : 'none',
           }}>
-            {/* Number */}
             <div style={{ flexShrink: 0, minWidth: 220, lineHeight: 1 }}>
               <span
                 className="stat-num"
                 data-end={end} data-prefix={prefix} data-suffix={suffix}
-                style={{ fontFamily: OFFBIT, fontWeight: 'bold', fontSize: 48, color: C.accent }}>
-                {prefix}0
-              </span>
+                style={{ fontFamily: OFFBIT, fontWeight: 'bold', fontSize: 48, color: C.accent }}
+              />
               {suffix && (
                 <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: 36, color: C.accent }}>{suffix}</span>
               )}
             </div>
-
-            {/* Separator */}
             <div style={{ width: 1, alignSelf: 'stretch', background: C.border, flexShrink: 0 }} />
-
-            {/* Labels */}
             <div>
-              <p style={{ fontFamily: GEIST, fontSize: 15, color: C.text, marginBottom: 6, lineHeight: 1.4 }}>{label}</p>
-              <p style={{ fontFamily: GEIST, fontSize: 13, color: '#333', lineHeight: 1.5 }}>{context}</p>
+              <p style={{ fontFamily: GEIST, fontSize: 15, color: C.text, marginBottom: 6, lineHeight: 1.4 }}>{t(`land.stat${i}.label`)}</p>
+              <p style={{ fontFamily: GEIST, fontSize: 13, color: '#333', lineHeight: 1.5 }}>{t(`land.stat${i}.ctx`)}</p>
             </div>
           </div>
         ))}
       </div>
 
       <p style={{ fontFamily: MONO, fontSize: 11, color: '#2a2a2a', marginTop: 48 }}>
-        Fuente: CONDUSEF · ENVIPE 2025 · Kaspersky · The CIU
+        {t('land.problem.source')}
       </p>
     </section>
   )
@@ -476,6 +452,7 @@ function ProblemSection() {
 // ─── Globe section ────────────────────────────────────────────────────────────
 
 function GlobeSection({ incidents }) {
+  const { t } = useLang()
   const containerRef = useRef(null)
   const globeRef     = useRef(null)
   const [recent, setRecent] = useState([])
@@ -572,13 +549,13 @@ function GlobeSection({ incidents }) {
         position: 'relative', zIndex: 10,
       }}>
         <p style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.2em', color: C.accent, marginBottom: 20 }}>
-          AMENAZAS EN TIEMPO REAL
+          {t('land.globe.eyebrow')}
         </p>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 28 }}>
           <span style={{ fontFamily: HARMOND, fontWeight: 800, fontSize: 52, color: C.accent, lineHeight: 1 }}>
             {points.length}
           </span>
-          <span style={{ fontFamily: GEIST, fontSize: 13, color: C.muted }}>incidentes mapeados</span>
+          <span style={{ fontFamily: GEIST, fontSize: 13, color: C.muted }}>{t('land.globe.mapped')}</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {recent.map((inc) => (
@@ -595,7 +572,7 @@ function GlobeSection({ incidents }) {
             </div>
           ))}
           {recent.length === 0 && (
-            <p style={{ fontFamily: MONO, fontSize: 11, color: '#333' }}>Sin incidentes mapeados aún.</p>
+            <p style={{ fontFamily: MONO, fontSize: 11, color: '#333' }}>{t('land.globe.empty')}</p>
           )}
         </div>
       </div>
@@ -614,7 +591,14 @@ function GlobeSection({ incidents }) {
 // ─── How It Works ─────────────────────────────────────────────────────────────
 
 function HowItWorks() {
+  const { t } = useLang()
   const ref = useRef(null)
+
+  const steps = STEP_ICONS.map((s, i) => ({
+    ...s,
+    title: t(`land.step${i}.title`),
+    desc:  t(`land.step${i}.desc`),
+  }))
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -631,14 +615,14 @@ function HowItWorks() {
   return (
     <section ref={ref} id="how" style={{ background: C.bg, borderTop: `1px solid ${C.border}`, padding: '120px 64px' }}>
       <p style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.18em', color: C.accent, marginBottom: 16 }}>
-        CÓMO FUNCIONA
+        {t('land.how.eyebrow')}
       </p>
       <h2 style={{ fontFamily: HARMOND, fontWeight: 800, fontSize: 52, color: C.text, marginBottom: 64, lineHeight: 1.1 }}>
-        Cuatro pasos para estar protegido.
+        {t('land.how.title')}
       </h2>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {STEPS.map(({ num, title, desc, Icon }) => (
+        {steps.map(({ num, title, desc, Icon }) => (
           <div key={num} className="step-card" style={{
             position: 'relative', overflow: 'hidden',
             display: 'flex', alignItems: 'center', gap: 40,
@@ -669,7 +653,7 @@ function HowItWorks() {
 
 // ─── What You Can Scan ────────────────────────────────────────────────────────
 
-function ScanCard({ Icon, title, body }) {
+function ScanCard({ Icon, title, body, tryLabel }) {
   const iconRef = useRef(null)
   const [hovered, setHovered] = useState(false)
 
@@ -692,14 +676,22 @@ function ScanCard({ Icon, title, body }) {
         fontFamily: MONO, fontSize: 12, color: hovered ? C.accent : '#333',
         textDecoration: 'none', transition: 'color .25s',
       }}>
-        Probar <ArrowRightIcon width={11} height={11} />
+        {tryLabel} <ArrowRightIcon width={11} height={11} />
       </Link>
     </div>
   )
 }
 
 function WhatYouCanScan() {
+  const { t } = useLang()
   const ref = useRef(null)
+
+  const scanCards = SCAN_CARD_ICONS.map((Icon, i) => ({
+    Icon,
+    title: t(`land.card${i}.title`),
+    body:  t(`land.card${i}.body`),
+  }))
+  const tryLabel = t('land.scan.try')
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -717,15 +709,15 @@ function WhatYouCanScan() {
   return (
     <section ref={ref} style={{ background: C.bg, borderTop: `1px solid ${C.border}`, padding: '120px 64px' }}>
       <p style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.18em', color: C.accent, marginBottom: 16 }}>
-        QUÉ PUEDES ANALIZAR
+        {t('land.scan.eyebrow')}
       </p>
       <h2 style={{ fontFamily: HARMOND, fontWeight: 800, fontSize: 52, color: C.text, marginBottom: 64, lineHeight: 1.1 }}>
-        Un escáner. Cuatro vectores.
+        {t('land.scan.title')}
       </h2>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 20 }}>
-        {SCAN_CARDS.map((c) => (
-          <div key={c.title} className="scan-card-wrap">
-            <ScanCard {...c} />
+        {scanCards.map((c, i) => (
+          <div key={i} className="scan-card-wrap">
+            <ScanCard {...c} tryLabel={tryLabel} />
           </div>
         ))}
       </div>
@@ -736,9 +728,12 @@ function WhatYouCanScan() {
 // ─── Final CTA ────────────────────────────────────────────────────────────────
 
 function FinalCTA() {
+  const { lang, t } = useLang()
   const sectionRef = useRef(null)
   const glowRef    = useRef(null)
   const btnRef     = useRef(null)
+
+  const ctaFeatures = CTA_FEATURE_ICONS.map((Icon, i) => ({ Icon, label: t(`land.feat${i}`) }))
 
   useEffect(() => {
     const section = sectionRef.current
@@ -769,7 +764,6 @@ function FinalCTA() {
       background: C.bg, borderTop: `1px solid ${C.border}`,
       padding: '140px 64px',
     }}>
-      {/* Parallax amber glow */}
       <div ref={glowRef} style={{
         position: 'absolute', top: '50%', left: '50%',
         transform: 'translate(-50%,-50%)',
@@ -779,17 +773,21 @@ function FinalCTA() {
       }} />
 
       <div style={{ position: 'relative', display: 'flex', gap: 80, alignItems: 'center' }}>
-        {/* Left 60% */}
         <div style={{ flex: '0 0 60%' }}>
           <p style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.18em', color: C.accent, marginBottom: 24 }}>
-            EMPIEZA AHORA
+            {t('land.cta.eyebrow')}
           </p>
           <h2 style={{ fontFamily: HARMOND, fontWeight: 800, fontStyle: 'italic', fontSize: 52, color: C.text, marginBottom: 20, lineHeight: 1.08 }}>
-            <div><span style={{ fontFamily: 'Georgia, serif' }}>¿</span>Recibiste algo</div>
-            <div>sospechoso<span style={{ fontFamily: 'Georgia, serif' }}>?</span></div>
+            <div>
+              {lang === 'es' && <span style={{ fontFamily: 'Georgia, serif' }}>¿</span>}
+              {t('land.cta.titleLine1')}
+            </div>
+            <div>
+              {t('land.cta.titleLine2')}<span style={{ fontFamily: 'Georgia, serif' }}>?</span>
+            </div>
           </h2>
           <p style={{ fontFamily: GEIST, fontSize: 16, color: C.muted, maxWidth: 480, lineHeight: 1.75, marginBottom: 44 }}>
-            Analízalo en segundos. Sin registro. Sin datos personales. 100% anónimo. Tu análisis protege a otros en LATAM.
+            {t('land.cta.sub')}
           </p>
           <Link
             ref={btnRef}
@@ -802,15 +800,14 @@ function FinalCTA() {
               textDecoration: 'none',
             }}
           >
-            Analizar ahora
+            {t('land.cta.btn')}
             <ArrowRightIcon width={16} height={16} />
           </Link>
         </div>
 
-        {/* Right 40% */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 24 }}>
-          {CTA_FEATURES.map(({ Icon, label }) => (
-            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          {ctaFeatures.map(({ Icon, label }, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               <Icon style={{ color: C.accent, flexShrink: 0 }} width={16} height={16} />
               <span style={{ fontFamily: GEIST, fontSize: 14, color: C.muted }}>{label}</span>
             </div>
@@ -859,7 +856,7 @@ function Footer() {
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
 export default function Landing() {
-  const [stats, setStats]       = useState({ threats: null, campaigns: null, avgRisk: null })
+  const [stats, setStats]         = useState({ threats: null, campaigns: null, avgRisk: null })
   const [incidents, setIncidents] = useState([])
   const navRef = useRef(null)
 
