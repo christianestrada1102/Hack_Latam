@@ -495,6 +495,9 @@ export default function ThreatScanner() {
   const [analysisError, setAnalysisError]     = useState(() => _persist.analysisError)
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null)
   const [audioPreviewUrl, setAudioPreviewUrl] = useState(null)
+  const [imageExpanded, setImageExpanded]     = useState(false)
+  const [lightboxOpen, setLightboxOpen]       = useState(false)
+  const [zoomed, setZoomed]                   = useState(false)
 
   const fileInputRef   = useRef(null)
   const previewUrlsRef = useRef([])
@@ -616,6 +619,9 @@ export default function ThreatScanner() {
     setShowReport(false)
     setOriginalContent('')
     setAnalysisError(null)
+    setImageExpanded(false)
+    setLightboxOpen(false)
+    setZoomed(false)
   }
 
   const handleReport = () => {
@@ -702,6 +708,58 @@ export default function ThreatScanner() {
                     </button>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Image preview — collapsible, appears immediately after upload */}
+            {imagePreviewUrl && (
+              <div className="rounded border overflow-hidden" style={{ borderColor: '#262626', background: '#0a0a0a' }}>
+                <button
+                  onClick={() => setImageExpanded((e) => !e)}
+                  className="w-full flex items-center justify-between px-3 py-2 text-[11px] font-mono transition-colors"
+                  style={{ color: '#a08e7a' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#131313' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+                >
+                  <span>Ver imagen adjunta</span>
+                  <span style={{ fontSize: 9 }}>{imageExpanded ? '▲' : '▼'}</span>
+                </button>
+                <div className="border-t border-[#1a1a1a]" style={{ background: '#080808' }}>
+                  {imageExpanded ? (
+                    <div className="flex items-center justify-center p-2">
+                      <img
+                        src={imagePreviewUrl}
+                        alt="Imagen adjunta"
+                        onClick={() => setLightboxOpen(true)}
+                        style={{ maxWidth: '100%', maxHeight: 400, objectFit: 'contain', cursor: 'zoom-in' }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 p-2">
+                      <img
+                        src={imagePreviewUrl}
+                        alt="Thumbnail"
+                        onClick={() => setLightboxOpen(true)}
+                        style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 3, cursor: 'zoom-in', flexShrink: 0 }}
+                      />
+                      <span className="text-[11px] font-mono truncate" style={{ color: '#555' }}>
+                        {imageFile?.name}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Audio player — appears immediately after upload */}
+            {audioPreviewUrl && (
+              <div className="rounded border p-3" style={{ borderColor: '#262626', background: '#0a0a0a' }}>
+                <p className="text-[10px] uppercase tracking-widest font-mono mb-2" style={{ color: '#555' }}>
+                  Audio adjunto
+                </p>
+                <audio controls style={{ width: '100%', filter: 'invert(1) hue-rotate(180deg)' }}>
+                  <source src={audioPreviewUrl} />
+                </audio>
               </div>
             )}
 
@@ -804,26 +862,6 @@ export default function ThreatScanner() {
                   Contenido Analizado
                 </p>
                 <HighlightedContent text={originalContent} entities={display?.entities ?? {}} />
-              </div>
-            )}
-            {state === 'done' && imagePreviewUrl && (
-              <div className="rounded border overflow-hidden" style={{ borderColor: '#262626', background: '#0a0a0a' }}>
-                <p className="text-[10px] uppercase tracking-widest font-mono px-3 pt-2 pb-1" style={{ color: '#555' }}>
-                  IMAGEN ANALIZADA
-                </p>
-                <div className="flex items-center justify-center p-2">
-                  <img src={imagePreviewUrl} alt="Imagen analizada" style={{ maxHeight: 200, objectFit: 'contain' }} />
-                </div>
-              </div>
-            )}
-            {state === 'done' && audioPreviewUrl && (
-              <div className="rounded border p-3" style={{ borderColor: '#262626', background: '#0a0a0a' }}>
-                <p className="text-[10px] uppercase tracking-widest font-mono mb-2" style={{ color: '#555' }}>
-                  AUDIO ANALIZADO
-                </p>
-                <audio controls style={{ width: '100%', filter: 'invert(1) hue-rotate(180deg)' }}>
-                  <source src={audioPreviewUrl} />
-                </audio>
               </div>
             )}
           </div>
@@ -986,6 +1024,38 @@ export default function ThreatScanner() {
 
     {showReport && display && (
       <ReportModal display={display} incidentId={incidentId} onClose={() => setShowReport(false)} />
+    )}
+
+    {lightboxOpen && imagePreviewUrl && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center"
+        style={{ background: 'rgba(0,0,0,0.92)' }}
+        onClick={() => { setLightboxOpen(false); setZoomed(false) }}
+      >
+        <img
+          src={imagePreviewUrl}
+          alt="Vista completa"
+          onClick={(e) => { e.stopPropagation(); setZoomed((z) => !z) }}
+          style={{
+            maxWidth:        '90vw',
+            maxHeight:       '90vh',
+            objectFit:       'contain',
+            cursor:          zoomed ? 'zoom-out' : 'zoom-in',
+            transform:       zoomed ? 'scale(2)' : 'scale(1)',
+            transformOrigin: 'center',
+            transition:      'transform 0.25s ease',
+          }}
+        />
+        <button
+          onClick={() => { setLightboxOpen(false); setZoomed(false) }}
+          className="absolute top-4 right-5 transition-colors"
+          style={{ color: '#666', fontSize: 22, lineHeight: 1 }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = '#e5e2e1' }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = '#666' }}
+        >
+          ✕
+        </button>
+      </div>
     )}
     </>
   )
