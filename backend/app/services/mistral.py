@@ -19,7 +19,8 @@ from app.config import settings
 _OPENROUTER_BASE = "https://openrouter.ai/api/v1"
 _MISTRAL_BASE    = "https://api.mistral.ai/v1"
 
-_PIXTRAL       = "mistralai/pixtral-12b-2409"
+_PIXTRAL         = "mistralai/pixtral-12b"
+_PIXTRAL_FALLBACK = "mistralai/mistral-small-3.1-24b-instruct:free"
 _MISTRAL_SMALL = "mistralai/mistral-small-3.2-24b-instruct-2506"
 _HAIKU         = "anthropic/claude-haiku-4-5"
 
@@ -152,7 +153,11 @@ async def extract_image_text(image_bytes: bytes, mime_type: str = "image/png") -
         ],
     }]
 
-    return await _or_chat(_PIXTRAL, messages, timeout=60)
+    try:
+        return await _or_chat(_PIXTRAL, messages, timeout=60)
+    except Exception as primary_exc:
+        print(f"[extract_image_text] {_PIXTRAL} failed ({primary_exc}), retrying with {_PIXTRAL_FALLBACK}")
+        return await _or_chat(_PIXTRAL_FALLBACK, messages, timeout=60)
 
 
 # ── Text / URL analysis (Mistral Small) ───────────────────────────────────────
