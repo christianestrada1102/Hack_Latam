@@ -260,7 +260,7 @@ async def transcribe_audio(audio_bytes: bytes, mime_type: str = "audio/ogg") -> 
                     "X-Title":      "HackLatam",
                 },
                 files={"file": (f"audio.{ext}", audio_bytes, mime_type)},
-                data={"model": "openai/whisper-1"},
+                data={"model": "openai/whisper-large-v3-turbo"},
             )
 
         print(f"[transcribe_audio] status={resp.status_code} headers={dict(resp.headers)}")
