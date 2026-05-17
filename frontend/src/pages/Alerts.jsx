@@ -8,16 +8,14 @@ import LoadingSpinner from '../components/LoadingSpinner'
 
 const LEVEL_STYLES = {
   critical: {
-    badge:  'text-red-400 bg-red-500/10 border-red-500/20',
-    border: 'border-l-red-500',
-    icon:   AlertOctagon,
-    color:  '#ef4444',
+    borderColor: '#ef4444',
+    icon:        AlertOctagon,
+    color:       '#ef4444',
   },
   high: {
-    badge:  'text-amber-400 bg-amber-500/10 border-amber-500/20',
-    border: 'border-l-amber-400',
-    icon:   AlertTriangle,
-    color:  '#f59e0b',
+    borderColor: '#f59e0b',
+    icon:        AlertTriangle,
+    color:       '#f59e0b',
   },
 }
 
@@ -75,7 +73,7 @@ function VectorBar({ label, value }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[10px] text-neutral-400">{label}</span>
+        <span className="text-[10px]" style={{ color: '#a08e7a' }}>{label}</span>
         <span className="text-[10px] font-mono" style={{ color }}>{value}%</span>
       </div>
       <div className="h-[2px] bg-[#222] rounded-full overflow-hidden">
@@ -92,25 +90,36 @@ function AlertCard({ alert, expanded, onToggle }) {
   const actions = ACTIONS_BY_TYPE[alert.type] ?? DEFAULT_ACTIONS
 
   return (
-    <div className={`alert-card bg-[#1c1b1b] border border-[#262626] border-l-2 ${styles.border} rounded overflow-hidden`}>
-      <div className="p-4 flex items-start gap-4">
+    <div
+      className="alert-card bg-[#1c1b1b] border border-[#262626] rounded overflow-hidden"
+      style={{ borderLeft: `3px solid ${styles.borderColor}` }}
+    >
+      <div className="px-4 py-3 flex items-start gap-4">
         <Icon size={16} strokeWidth={1.5} className="shrink-0 mt-0.5" style={{ color: styles.color }} />
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className={`badge badge-xs uppercase tracking-widest font-mono font-medium ${
-              alert.level === 'critical' ? 'badge-error' : 'badge-warning'
-            }`}>
+            <span
+              className="text-[9px] uppercase tracking-widest font-mono font-semibold px-1.5 py-0.5 rounded border"
+              style={{
+                color:       styles.color,
+                background:  `${styles.color}15`,
+                borderColor: `${styles.color}35`,
+              }}
+            >
               {alert.level === 'critical' ? t('alerts.critical') : 'HIGH'}
             </span>
-            <span className="text-[9px] uppercase tracking-wider text-neutral-600 border border-[#2a2a2a] px-1.5 py-0.5 rounded">
+            <span
+              className="text-[9px] uppercase tracking-wider font-mono border border-[#2a2a2a] px-1.5 py-0.5 rounded"
+              style={{ color: '#555' }}
+            >
               {alert.type}
             </span>
-            <span className="text-[10px] font-mono text-neutral-600 ml-auto">{alert.timestamp}</span>
+            <span className="text-[11px] font-mono ml-auto" style={{ color: '#555' }}>{alert.timestamp}</span>
           </div>
 
-          <p className="text-[13px] font-medium text-neutral-200">{alert.title}</p>
-          <p className="text-[11px] text-neutral-500 font-mono mt-0.5">{alert.region}</p>
+          <p className="text-[15px] font-medium" style={{ color: '#e5e2e1' }}>{alert.title}</p>
+          <p className="text-[12px] font-mono mt-0.5" style={{ color: '#a08e7a' }}>{alert.region}</p>
 
           {alert.topEntities.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-2">
@@ -123,16 +132,17 @@ function AlertCard({ alert, expanded, onToggle }) {
           )}
         </div>
 
-        <div className="flex flex-col items-end gap-3 shrink-0">
+        <div className="flex flex-col items-end gap-2 shrink-0">
           <span
             className="text-[22px] font-mono font-bold tabular-nums leading-none"
-            style={{ color: scoreColor(alert.score) }}
+            style={{ color: styles.color }}
           >
             {alert.score}
           </span>
           <button
             onClick={onToggle}
-            className="flex items-center gap-1 text-[11px] text-neutral-500 hover:text-neutral-300 transition-colors"
+            className="flex items-center gap-1 transition-colors"
+            style={{ fontSize: 12, color: '#a08e7a' }}
           >
             {t('alerts.view')} {expanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
           </button>
@@ -144,34 +154,34 @@ function AlertCard({ alert, expanded, onToggle }) {
           <div className="grid grid-cols-2 gap-6">
             {/* Entities */}
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-neutral-600 font-mono mb-2">{t('alerts.entities')}</p>
+              <p className="text-[10px] uppercase tracking-widest font-mono mb-2" style={{ color: '#555' }}>{t('alerts.entities')}</p>
               <div className="flex flex-col gap-1.5 font-mono text-[11px]">
                 {alert.entities.phones?.map((p) => (
                   <div key={p} className="flex items-center gap-1.5">
-                    <Phone size={9} className="text-neutral-600" />
+                    <Phone size={9} style={{ color: '#555' }} />
                     <span className="text-amber-400">{p}</span>
                   </div>
                 ))}
                 {alert.entities.domains?.map((d) => (
                   <div key={d} className="flex items-center gap-1.5">
-                    <Globe size={9} className="text-neutral-600" />
+                    <Globe size={9} style={{ color: '#555' }} />
                     <span className="text-red-400 break-all">{d}</span>
                   </div>
                 ))}
                 {alert.entities.keywords?.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1">
                     {alert.entities.keywords.map((k) => (
-                      <span key={k} className="bg-[#222] border border-[#2a2a2a] text-neutral-500 px-1 py-0.5 rounded text-[10px]">{k}</span>
+                      <span key={k} className="bg-[#222] border border-[#2a2a2a] px-1 py-0.5 rounded text-[10px]" style={{ color: '#666' }}>{k}</span>
                     ))}
                   </div>
                 )}
-                {!alert.entities.phones?.length && !alert.entities.domains?.length && <span className="text-neutral-600">—</span>}
+                {!alert.entities.phones?.length && !alert.entities.domains?.length && <span style={{ color: '#555' }}>—</span>}
               </div>
             </div>
 
             {/* Vectors */}
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-neutral-600 font-mono mb-2">{t('report.vectors')}</p>
+              <p className="text-[10px] uppercase tracking-widest font-mono mb-2" style={{ color: '#555' }}>{t('report.vectors')}</p>
               <div className="flex flex-col gap-2">
                 <VectorBar label={t('report.urgency')}   value={alert.urgency} />
                 <VectorBar label={t('report.coercion')}  value={alert.coercion} />
@@ -182,16 +192,16 @@ function AlertCard({ alert, expanded, onToggle }) {
 
           {alert.campaign && (
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-neutral-600 font-mono mb-1">{t('alerts.campaign')}</p>
+              <p className="text-[10px] uppercase tracking-widest font-mono mb-1" style={{ color: '#555' }}>{t('alerts.campaign')}</p>
               <span className="text-[11px] font-mono text-amber-400">{alert.campaign}</span>
             </div>
           )}
 
           <div>
-            <p className="text-[10px] uppercase tracking-widest text-neutral-600 font-mono mb-2">{t('report.actions')}</p>
+            <p className="text-[10px] uppercase tracking-widest font-mono mb-2" style={{ color: '#555' }}>{t('report.actions')}</p>
             <ul className="flex flex-col gap-1.5">
               {actions.map((a, i) => (
-                <li key={i} className="flex items-start gap-2 text-[11px] text-neutral-300">
+                <li key={i} className="flex items-start gap-2 text-[11px]" style={{ color: '#e5e2e1' }}>
                   <span className="text-amber-400 font-mono shrink-0">{i + 1}.</span>
                   {a}
                 </li>
@@ -246,22 +256,24 @@ export default function Alerts() {
     <div ref={alertsRef} className="p-5">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-sm font-semibold text-neutral-200">{t('alerts.title')}</h1>
-          <p className="text-[11px] text-neutral-500 mt-0.5">{t('alerts.subtitle')}</p>
+          <h1 className="text-sm font-semibold" style={{ color: '#e5e2e1' }}>{t('alerts.title')}</h1>
+          <p className="text-[11px] mt-0.5" style={{ color: '#a08e7a' }}>{t('alerts.subtitle')}</p>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           {FILTER_VALUES.map((v) => (
             <button
               key={v}
               onClick={() => setFilter(v)}
-              className={`btn btn-xs font-mono uppercase tracking-widest ${
-                filter === v ? 'btn-warning text-[#131313]' : 'btn-ghost text-neutral-500 hover:text-neutral-200'
-              }`}
+              className="text-[11px] font-mono uppercase tracking-widest px-2.5 py-1 rounded border transition-colors"
+              style={filter === v
+                ? { background: '#f59e0b', color: '#131313', borderColor: '#f59e0b' }
+                : { background: 'transparent', color: '#666', borderColor: '#2a2a2a' }
+              }
             >
               {filterLabels[v]}
             </button>
           ))}
-          <span className="text-[11px] font-mono text-neutral-600 ml-2">
+          <span className="text-sm ml-1" style={{ color: '#a08e7a' }}>
             {filtered.length} {t('alerts.active')}
           </span>
         </div>
@@ -272,7 +284,7 @@ export default function Alerts() {
           <LoadingSpinner message="Cargando alertas..." />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex items-center justify-center h-32 text-[12px] text-neutral-600">
+        <div className="flex items-center justify-center h-32 text-[12px]" style={{ color: '#555' }}>
           {t('alerts.empty')}
         </div>
       ) : (
