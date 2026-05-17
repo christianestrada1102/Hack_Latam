@@ -127,7 +127,7 @@ const Nav = ({ navRef }) => {
   return (
     <nav ref={navRef} style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200,
-      height: 56, padding: isMobile ? '0 20px' : '0 48px',
+      height: 56, padding: isMobile ? '0 16px' : '0 48px',
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       background: scrolled ? 'rgba(8,8,8,0.92)' : 'transparent',
       backdropFilter: scrolled ? 'blur(12px)' : 'none',
@@ -333,7 +333,7 @@ function HeroSection({ stats, incidents, navRef }) {
         position: 'absolute', top: 0, left: 0,
         width: isMobile ? '100%' : '50%', height: '100%',
         zIndex: 10, display: 'flex', alignItems: 'center',
-        padding: isMobile ? '80px 24px 40px' : '80px 0 0 64px', pointerEvents: 'auto',
+        padding: isMobile ? '80px 16px 40px' : '80px 0 0 64px', pointerEvents: 'auto',
       }}>
         <div style={{ maxWidth: isMobile ? '100%' : 520 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
@@ -436,7 +436,7 @@ function ProblemSection() {
   return (
     <section ref={ref} id="problem" style={{
       background: C.bg, borderTop: `1px solid ${C.border}`,
-      padding: isMobile ? '64px 24px' : '120px 64px',
+      padding: isMobile ? '64px 16px' : '120px 64px',
     }}>
       <p style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.18em', color: C.accent, marginBottom: 16 }}>
         {t('land.problem.eyebrow')}
@@ -655,7 +655,7 @@ function HowItWorks() {
   }, [])
 
   return (
-    <section ref={ref} id="how" style={{ background: C.bg, borderTop: `1px solid ${C.border}`, padding: isMobile ? '64px 24px' : '120px 64px' }}>
+    <section ref={ref} id="how" style={{ background: C.bg, borderTop: `1px solid ${C.border}`, padding: isMobile ? '64px 16px' : '120px 64px' }}>
       <p style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.18em', color: C.accent, marginBottom: 16 }}>
         {t('land.how.eyebrow')}
       </p>
@@ -667,25 +667,38 @@ function HowItWorks() {
         {steps.map(({ num, title, desc, Icon }) => (
           <div key={num} className="step-card" style={{
             position: 'relative', overflow: 'hidden',
-            display: 'flex', alignItems: 'center', gap: isMobile ? 20 : 40,
-            padding: isMobile ? '24px 20px' : '36px 48px',
+            display: 'flex',
+            flexDirection: isMobile ? 'column' : 'row',
+            alignItems: isMobile ? 'flex-start' : 'center',
+            gap: isMobile ? 6 : 40,
+            padding: isMobile ? '20px 16px' : '36px 48px',
             background: C.surface,
             borderLeft: `2px solid ${C.accent}`,
             borderTop: `1px solid ${C.border}`, borderRight: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`,
             borderRadius: 8,
           }}>
-            <span style={{
-              position: 'absolute', right: isMobile ? 16 : 36, top: '50%', transform: 'translateY(-50%)',
-              fontFamily: HARMOND, fontWeight: 800, fontSize: isMobile ? 72 : 120, color: C.border,
-              lineHeight: 1, userSelect: 'none', pointerEvents: 'none',
-            }}>
-              {num}
-            </span>
-            <Icon style={{ color: C.accent, flexShrink: 0 }} width={isMobile ? 18 : 22} height={isMobile ? 18 : 22} />
-            <div>
-              <h3 style={{ fontFamily: HARMOND, fontWeight: 600, fontSize: isMobile ? 20 : 26, color: C.text, marginBottom: 8 }}>{title}</h3>
-              <p style={{ fontFamily: GEIST, fontSize: isMobile ? 13 : 15, color: C.muted, lineHeight: 1.75, maxWidth: 600 }}>{desc}</p>
-            </div>
+            {isMobile ? (
+              <>
+                <span style={{ fontFamily: MONO, fontSize: 14, color: C.accent, marginBottom: 4 }}>{num}</span>
+                <h3 style={{ fontFamily: HARMOND, fontWeight: 600, fontSize: 20, color: C.text, marginBottom: 4, lineHeight: 1.2 }}>{title}</h3>
+                <p style={{ fontFamily: GEIST, fontSize: 14, color: C.muted, lineHeight: 1.75 }}>{desc}</p>
+              </>
+            ) : (
+              <>
+                <span style={{
+                  position: 'absolute', right: 36, top: '50%', transform: 'translateY(-50%)',
+                  fontFamily: HARMOND, fontWeight: 800, fontSize: 120, color: C.border,
+                  lineHeight: 1, userSelect: 'none', pointerEvents: 'none',
+                }}>
+                  {num}
+                </span>
+                <Icon style={{ color: C.accent, flexShrink: 0 }} width={22} height={22} />
+                <div>
+                  <h3 style={{ fontFamily: HARMOND, fontWeight: 600, fontSize: 26, color: C.text, marginBottom: 10 }}>{title}</h3>
+                  <p style={{ fontFamily: GEIST, fontSize: 15, color: C.muted, lineHeight: 1.75, maxWidth: 600 }}>{desc}</p>
+                </div>
+              </>
+            )}
           </div>
         ))}
       </div>
@@ -707,7 +720,7 @@ function ScanCard({ Icon, title, body, tryLabel }) {
       onMouseLeave={() => { setHovered(false); gsap.to(iconRef.current, { scale: 1,    duration: 0.2,  ease: 'power2.in'  }) }}
       style={{
         background: C.surface, border: `1px solid ${hovered ? C.accent : C.border}`,
-        borderRadius: 8, padding: isMobile ? '24px 20px' : '36px 32px', transition: 'border-color .25s', cursor: 'default',
+        borderRadius: 8, padding: isMobile ? '20px 16px' : '36px 32px', transition: 'border-color .25s', cursor: 'default',
       }}
     >
       <div ref={iconRef} style={{ display: 'inline-flex', marginBottom: 20, color: hovered ? C.accent : C.muted, transition: 'color .25s' }}>
@@ -753,7 +766,7 @@ function WhatYouCanScan() {
   }, [])
 
   return (
-    <section ref={ref} style={{ background: C.bg, borderTop: `1px solid ${C.border}`, padding: isMobile ? '64px 24px' : '120px 64px' }}>
+    <section ref={ref} style={{ background: C.bg, borderTop: `1px solid ${C.border}`, padding: isMobile ? '64px 16px' : '120px 64px' }}>
       <p style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.18em', color: C.accent, marginBottom: 16 }}>
         {t('land.scan.eyebrow')}
       </p>
@@ -810,7 +823,7 @@ function FinalCTA() {
     <section ref={sectionRef} id="demo" style={{
       position: 'relative', overflow: 'hidden',
       background: C.bg, borderTop: `1px solid ${C.border}`,
-      padding: isMobile ? '64px 24px' : '140px 64px',
+      padding: isMobile ? '64px 16px' : '140px 64px',
     }}>
       <div ref={glowRef} style={{
         position: 'absolute', top: '50%', left: '50%',
@@ -874,7 +887,7 @@ function Footer() {
   return (
     <footer style={{ background: C.bg, borderTop: `1px solid ${C.border}` }}>
       <div style={{
-        maxWidth: 1152, margin: '0 auto', padding: isMobile ? '24px 20px' : '24px 32px',
+        maxWidth: 1152, margin: '0 auto', padding: isMobile ? '20px 16px' : '24px 32px',
         display: 'flex', flexDirection: isMobile ? 'column' : 'row',
         justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center',
         gap: isMobile ? 16 : 0,
