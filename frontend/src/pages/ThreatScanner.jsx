@@ -131,20 +131,98 @@ const TOOLTIP_LABEL = {
   keyword: 'Táctica de manipulación',
 }
 
-function HighlightedContent({ text, entities }) {
+function EntityPopoverCard({ type, text, vtData, rect, onClose }) {
+  const ref = useRef(null)
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    const onDown = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose() }
+    document.addEventListener('keydown', onKey)
+    document.addEventListener('mousedown', onDown)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('mousedown', onDown)
+    }
+  }, [onClose])
+
+  const leftPos = Math.min(Math.max(rect.left, 8), window.innerWidth - 292)
+  const posStyle = (window.innerHeight - rect.bottom) > 140
+    ? { top: rect.bottom + 6 }
+    : { bottom: window.innerHeight - rect.top + 6 }
+
+  const showVT = type === 'domain' && vtData
+
+  return (
+    <div
+      ref={ref}
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        position: 'fixed',
+        left: leftPos,
+        ...posStyle,
+        zIndex: 9999,
+        maxWidth: 280,
+        background: '#111111',
+        border: '1px solid #262626',
+        borderRadius: 6,
+        padding: '10px 12px',
+        fontSize: 12,
+        pointerEvents: 'auto',
+      }}
+    >
+      <p style={{ color: '#f59e0b', fontWeight: 600, fontSize: 11, marginBottom: 5 }}>
+        {TOOLTIP_LABEL[type]}
+      </p>
+      <p style={{ color: '#e5e2e1', wordBreak: 'break-all' }}>{text}</p>
+      {showVT && (
+        <div style={{ borderTop: '1px solid #1e1e1e', marginTop: 8, paddingTop: 8 }}>
+          <p style={{ color: '#555', fontSize: 10, fontFamily: 'monospace', marginBottom: 4 }}>VirusTotal</p>
+          {vtData.malicious > 0 ? (
+            <p style={{ color: '#ef4444', fontFamily: 'monospace', fontSize: 11 }}>
+              {vtData.malicious}/{vtData.total_engines} motores detectaron amenaza
+            </p>
+          ) : (
+            <p style={{ color: '#10b981', fontFamily: 'monospace', fontSize: 11 }}>Sin detecciones</p>
+          )}
+          {vtData.suspicious > 0 && (
+            <p style={{ color: '#f59e0b', fontFamily: 'monospace', fontSize: 10, marginTop: 2 }}>
+              {vtData.suspicious} sospechoso{vtData.suspicious !== 1 ? 's' : ''}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function HighlightedContent({ text, entities, vtData }) {
+  const [openSeg, setOpenSeg] = useState(null)
   const segs = parseHighlights(text, entities)
+
   return (
     <p className="text-[12px] text-neutral-300 font-mono leading-relaxed break-words whitespace-pre-wrap">
       {segs.map((seg, i) =>
         seg.type ? (
-          <span key={i} className="relative group inline" style={HIGHLIGHT_STYLE[seg.type]}>
+          <span
+            key={i}
+            className="inline cursor-pointer"
+            style={HIGHLIGHT_STYLE[seg.type]}
+            onClick={(e) => {
+              e.stopPropagation()
+              const r = e.currentTarget.getBoundingClientRect()
+              setOpenSeg(openSeg?.index === i ? null : { index: i, rect: r, type: seg.type, text: seg.text })
+            }}
+          >
             {seg.text}
-            <span
-              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded whitespace-nowrap pointer-events-none z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-150"
-              style={{ background: '#1c1b1b', border: '1px solid #262626', fontSize: 11, color: '#f59e0b' }}
-            >
-              {TOOLTIP_LABEL[seg.type]}
-            </span>
+            {openSeg?.index === i && (
+              <EntityPopoverCard
+                type={openSeg.type}
+                text={openSeg.text}
+                vtData={vtData}
+                rect={openSeg.rect}
+                onClose={() => setOpenSeg(null)}
+              />
+            )}
           </span>
         ) : (
           <span key={i}>{seg.text}</span>
@@ -861,7 +939,7 @@ export default function ThreatScanner() {
                 <p className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono mb-2">
                   Contenido Analizado
                 </p>
-                <HighlightedContent text={originalContent} entities={display?.entities ?? {}} />
+                <HighlightedContent text={originalContent} entities={display?.entities ?? {}} vtData={display?.virustotal ?? null} />
               </div>
             )}
           </div>
