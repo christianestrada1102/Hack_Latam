@@ -95,7 +95,7 @@ function AlertCard({ alert, expanded, onToggle }) {
       className="alert-card bg-[#1c1b1b] border border-[#262626] rounded overflow-hidden"
       style={{ borderLeft: `3px solid ${styles.borderColor}` }}
     >
-      <div className="px-4 py-3 flex items-start gap-4">
+      <div className="px-3 py-3 md:px-4 flex items-start gap-3 md:gap-4">
         <Icon size={16} strokeWidth={1.5} className="shrink-0 mt-0.5" style={{ color: styles.color }} />
 
         <div className="flex-1 min-w-0">
@@ -143,7 +143,7 @@ function AlertCard({ alert, expanded, onToggle }) {
           <button
             onClick={onToggle}
             className="flex items-center gap-1 transition-colors"
-            style={{ fontSize: 12, color: '#a08e7a' }}
+            style={{ fontSize: 12, color: '#a08e7a', minHeight: 36 }}
           >
             {t('alerts.view')} {expanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
           </button>
@@ -151,8 +151,8 @@ function AlertCard({ alert, expanded, onToggle }) {
       </div>
 
       {expanded && (
-        <div className="border-t border-[#262626] px-5 py-4 flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-6">
+        <div className="border-t border-[#262626] px-3 py-3 md:px-5 md:py-4 flex flex-col gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             {/* Entities */}
             <div>
               <p className="text-[10px] uppercase tracking-widest font-mono mb-2" style={{ color: '#555' }}>{t('alerts.entities')}</p>
@@ -260,22 +260,24 @@ export default function Alerts() {
   }
 
   return (
-    <div ref={alertsRef} className="p-5">
-      <div className="flex items-center justify-between mb-4">
+    <div ref={alertsRef} className="p-4 md:p-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div>
           <h1 className="text-sm font-semibold" style={{ color: '#e5e2e1' }}>{t('alerts.title')}</h1>
           <p className="text-[11px] mt-0.5" style={{ color: '#a08e7a' }}>{t('alerts.subtitle')}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {FILTER_VALUES.map((v) => (
             <button
               key={v}
               onClick={() => setFilter(v)}
-              className="text-[11px] font-mono uppercase tracking-widest px-2.5 py-1 rounded border transition-colors"
-              style={filter === v
-                ? { background: '#f59e0b', color: '#131313', borderColor: '#f59e0b' }
-                : { background: 'transparent', color: '#666', borderColor: '#2a2a2a' }
-              }
+              className="text-[11px] font-mono uppercase tracking-widest px-2.5 rounded border transition-colors"
+              style={Object.assign(
+                { minHeight: 36 },
+                filter === v
+                  ? { background: '#f59e0b', color: '#131313', borderColor: '#f59e0b' }
+                  : { background: 'transparent', color: '#666', borderColor: '#2a2a2a' }
+              )}
             >
               {filterLabels[v]}
             </button>
