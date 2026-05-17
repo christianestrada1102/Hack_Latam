@@ -54,86 +54,89 @@ def _merge_emotional(analysis: dict, emotional: dict) -> dict:
 
 @router.post("/analyze", response_model=ThreatReport)
 async def analyze(
-    file: Optional[UploadFile] = File(default=None),
-    text: Optional[str] = Form(default=None),
-    url: Optional[str] = Form(default=None),
+    file:  Optional[UploadFile] = File(default=None),   # image (or audio if sent as file)
+    audio: Optional[UploadFile] = File(default=None),   # dedicated audio field
+    text:  Optional[str]        = Form(default=None),
+    url:   Optional[str]        = Form(default=None),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Analyze content for digital threat indicators.
 
-    Accepts one of:
-    - multipart file: image/* → Pixtral vision | audio/* → Mistral transcription
-    - form field `text`: message or SMS body → Mistral Small
-    - form field `url`: suspicious link → Mistral Small
+    Accepts any combination of:
+    - file:  image/* → Pixtral OCR
+    - audio: audio/* → Voxtral transcription
+    - text:  message or SMS body
+    - url:   suspicious link (page content fetched automatically)
 
-    Emotional pressure scores are always refined by Claude Haiku.
+    All available text is combined before analysis.
     """
-    analysis:   dict = {}
-    embed_text: str  = ""
+    text_parts: list[str] = []
+    embed_text: str       = ""
 
     try:
+        # ── Collect extraction coroutines (image + audio run in parallel) ──────
+        extraction_coros  = []
+        extraction_labels = []
+
         if file is not None:
-            content_type = (file.content_type or "").lower()
-            file_bytes   = await file.read()
-
-            if content_type.startswith("image/"):
-                # Pixtral extracts text; Mistral Small + Haiku analyze in parallel
-                embed_text          = await mistral_svc.extract_image_text(file_bytes, content_type)
-                analysis, emotional = await asyncio.gather(
-                    mistral_svc.analyze_text_threat(embed_text),
-                    mistral_svc.detect_emotional_scores(embed_text),
-                )
-                analysis = _merge_emotional(analysis, emotional)
-
-            elif content_type.startswith("audio/"):
-                # Transcribe first, then treat transcript like text
-                embed_text          = await mistral_svc.transcribe_audio(file_bytes, content_type)
-                analysis, emotional = await asyncio.gather(
-                    mistral_svc.analyze_text_threat(embed_text),
-                    mistral_svc.detect_emotional_scores(embed_text),
-                )
-                analysis = _merge_emotional(analysis, emotional)
-
+            ct         = (file.content_type or "").lower()
+            file_bytes = await file.read()
+            if ct.startswith("image/"):
+                extraction_coros.append(mistral_svc.extract_image_text(file_bytes, ct))
+                extraction_labels.append("image")
+            elif ct.startswith("audio/"):
+                extraction_coros.append(mistral_svc.transcribe_audio(file_bytes, ct))
+                extraction_labels.append("audio")
             else:
-                raise HTTPException(
-                    status_code=415,
-                    detail=f"Unsupported file type '{content_type}'. Use image/* or audio/*.",
-                )
+                raise HTTPException(status_code=415, detail=f"Unsupported file type '{ct}'.")
 
-        elif text or url:
-            raw_input = (text or url).strip()
-            if not raw_input:
-                raise HTTPException(status_code=422, detail="Content cannot be empty.")
+        if audio is not None:
+            ct          = (audio.content_type or "").lower()
+            audio_bytes = await audio.read()
+            extraction_coros.append(mistral_svc.transcribe_audio(audio_bytes, ct or "audio/ogg"))
+            extraction_labels.append("audio")
 
-            # For URLs: fetch page content and prepend it to the analysis input
-            if url or raw_input.startswith(("http://", "https://")):
-                try:
-                    async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
-                        page = await client.get(raw_input)
-                        html = page.text
-                        visible = re.sub(r'<[^>]+>', ' ', html)
-                        visible = re.sub(r'\s+', ' ', visible).strip()
-                        embed_text = raw_input + "\n\n[Page content]\n" + visible[:2000]
-                except Exception:
-                    embed_text = raw_input
-            else:
-                embed_text = raw_input
+        # Run OCR / transcription in parallel
+        if extraction_coros:
+            extracted = await asyncio.gather(*extraction_coros, return_exceptions=True)
+            for label, result in zip(extraction_labels, extracted):
+                if isinstance(result, Exception):
+                    continue
+                prefix = "[Contenido de imagen]" if label == "image" else "[Transcripción de audio]"
+                text_parts.append(f"{prefix}\n{result}")
 
-            print(f"[analyze] embed_text repr={repr(embed_text)[:300]}")
+        # ── Direct text ──────────────────────────────────────────────────────
+        if text and text.strip():
+            text_parts.append(text.strip())
 
-            # Mistral Small + Claude Haiku in parallel
-            analysis, emotional = await asyncio.gather(
-                mistral_svc.analyze_text_threat(embed_text),
-                mistral_svc.detect_emotional_scores(embed_text),
-            )
-            analysis = _merge_emotional(analysis, emotional)
+        # ── URL: fetch page content ───────────────────────────────────────────
+        if url and url.strip():
+            raw_url = url.strip()
+            try:
+                async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+                    page    = await client.get(raw_url)
+                    html    = page.text
+                    visible = re.sub(r"<[^>]+>", " ", html)
+                    visible = re.sub(r"\s+",     " ", visible).strip()
+                    text_parts.append(f"{raw_url}\n\n[Contenido de página]\n{visible[:2000]}")
+            except Exception:
+                text_parts.append(raw_url)
 
-        else:
+        if not text_parts:
             raise HTTPException(
                 status_code=422,
-                detail="Provide one of: file (image/audio), text, or url.",
+                detail="Provide at least one of: image file, audio file, text, or url.",
             )
+
+        embed_text = "\n\n---\n\n".join(text_parts)
+
+        # ── Threat analysis + emotional scoring in parallel ───────────────────
+        analysis, emotional = await asyncio.gather(
+            mistral_svc.analyze_text_threat(embed_text),
+            mistral_svc.detect_emotional_scores(embed_text),
+        )
+        analysis = _merge_emotional(analysis, emotional)
 
     except HTTPException:
         raise
@@ -144,11 +147,11 @@ async def analyze(
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Analysis failed: {exc}")
 
-    # Generate embedding and find similar past incidents
+    # ── Embed + similarity ────────────────────────────────────────────────────
     emb         = await embeddings.generate_embedding(embed_text)
     similar_ids = await embeddings.find_similar(db, emb) if emb else []
 
-    # Persist incident
+    # ── Persist ───────────────────────────────────────────────────────────────
     incident = Incident(
         threat_type       =analysis.get("threat_type") or "unknown",
         region            =analysis.get("region"),
