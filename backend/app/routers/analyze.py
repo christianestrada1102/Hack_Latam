@@ -4,7 +4,7 @@ import re
 from typing import Optional
 
 import httpx
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,6 +17,39 @@ from app.services import virustotal as vt_svc
 from app.services import zavu as zavu_svc
 
 router = APIRouter()
+
+_PRIVATE_EXACT    = {"127.0.0.1", "localhost", "::1", ""}
+_PRIVATE_PREFIXES = ("127.", "192.168.", "10.", "172.16.", "172.17.", "172.18.",
+                     "172.19.", "172.20.", "172.21.", "172.22.", "172.23.", "172.24.",
+                     "172.25.", "172.26.", "172.27.", "172.28.", "172.29.", "172.30.",
+                     "172.31.", "::ffff:127.")
+
+
+async def get_approximate_location(request: Request) -> dict:
+    """Resolve city/country from request IP using ip-api.com (no key required).
+    Returns all-None dict for private/localhost IPs (silently skipped)."""
+    ip = (
+        request.headers.get("CF-Connecting-IP")
+        or request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+        or (request.client.host if request.client else "")
+    )
+    if ip in _PRIVATE_EXACT or any(ip.startswith(p) for p in _PRIVATE_PREFIXES):
+        return {"country": None, "region": None, "city": None}
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.get(
+                f"http://ip-api.com/json/{ip}?fields=country,regionName,city,status"
+            )
+            data = resp.json()
+            if data.get("status") == "success":
+                return {
+                    "country": data.get("country"),
+                    "region":  data.get("regionName"),
+                    "city":    data.get("city"),
+                }
+    except Exception as exc:
+        print(f"[geolocation] ip={ip!r} failed: {exc}")
+    return {"country": None, "region": None, "city": None}
 
 
 class ThreatReport(BaseModel):
@@ -34,6 +67,7 @@ class ThreatReport(BaseModel):
     manipulation_summary: str | None = None
     virustotal: dict | None = None
     analyzed_content: str | None = None
+    region: str | None = None
 
 
 def _safe_int(value, default: int = 0) -> int:
@@ -57,6 +91,7 @@ def _merge_emotional(analysis: dict, emotional: dict) -> dict:
 
 @router.post("/analyze", response_model=ThreatReport)
 async def analyze(
+    request: Request,
     file:  Optional[UploadFile] = File(default=None),   # image (or audio if sent as file)
     audio: Optional[UploadFile] = File(default=None),   # dedicated audio field
     text:  Optional[str]        = Form(default=None),
@@ -141,21 +176,32 @@ async def analyze(
         embed_text = "\n\n---\n\n".join(text_parts)
         print(f"[analyze] embed_text parts={len(text_parts)}, total chars={len(embed_text)}, preview: {repr(embed_text[:300])}")
 
-        # ── Threat analysis + emotional scoring + VirusTotal in parallel ─────
+        # ── Threat analysis + emotional scoring + VirusTotal + geolocation in parallel ─
+        geo_coro = get_approximate_location(request)
         if checked_url:
-            analysis, emotional, vt_result = await asyncio.gather(
+            analysis, emotional, vt_result, geo = await asyncio.gather(
                 mistral_svc.analyze_text_threat(embed_text),
                 mistral_svc.detect_emotional_scores(embed_text),
                 vt_svc.check_url(checked_url),
+                geo_coro,
             )
         else:
-            analysis, emotional = await asyncio.gather(
+            analysis, emotional, geo = await asyncio.gather(
                 mistral_svc.analyze_text_threat(embed_text),
                 mistral_svc.detect_emotional_scores(embed_text),
+                geo_coro,
             )
             vt_result = None
 
         analysis = _merge_emotional(analysis, emotional)
+
+        # IP region takes priority; AI detection is the fallback (covers localhost/dev)
+        ip_region: str | None = None
+        if geo.get("city") and geo.get("country"):
+            ip_region = f"{geo['city']}, {geo['country']}"
+        elif geo.get("country"):
+            ip_region = geo["country"]
+        final_region = ip_region or analysis.get("region")
 
     except HTTPException:
         raise
@@ -187,7 +233,7 @@ async def analyze(
     # ── Persist ───────────────────────────────────────────────────────────────
     incident = Incident(
         threat_type       =analysis.get("threat_type") or "unknown",
-        region            =analysis.get("region"),
+        region            =final_region,
         risk_score        =_safe_int(analysis.get("risk_score")),
         emotional_pressure=analysis.get("emotional_pressure") or "low",
         urgency_score     =_safe_int(analysis.get("urgency_score")),
@@ -217,12 +263,13 @@ async def analyze(
         manipulation_summary=analysis.get("manipulation_summary"),
         virustotal          =vt_result,
         analyzed_content    =embed_text[:3000],
+        region              =incident.region,
     )
 
     incident_payload = {
         "incident_id":        report.incident_id,
         "threat_type":        report.threat_type,
-        "region":             analysis.get("region") or "",
+        "region":             incident.region or "",
         "risk_score":         report.risk_score,
         "emotional_pressure": report.emotional_pressure,
         "panic_interrupt":    report.panic_interrupt,
@@ -237,7 +284,7 @@ async def analyze(
         cluster_payload = {
             "cluster_id":     report.incident_id,
             "threat_type":    report.threat_type,
-            "region":         analysis.get("region") or "",
+            "region":         incident.region or "",
             "incident_count": report.similar_count,
             "top_keywords":   report.entities.get("keywords", [])[:5],
             "risk_score":     report.risk_score,
