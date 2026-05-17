@@ -713,9 +713,12 @@ export default function ThreatScanner() {
 
   return (
     <>
-    <div className="flex h-full min-h-0">
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 24 }} className="p-5">
       {/* Left panel */}
-      <div className="flex-1 flex flex-col p-5 gap-3 min-w-0 border-r border-[#262626]">
+      <div
+        className="flex flex-col gap-3 min-w-0 border-r border-[#262626] pr-6"
+        style={{ flex: 1, maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', scrollbarWidth: 'thin', scrollbarColor: '#2a2a2a transparent' }}
+      >
         <div>
           <h1 className="text-sm font-semibold text-neutral-200">{t('scanner.title')}</h1>
           <p className="text-[11px] text-neutral-500 mt-0.5">
@@ -947,7 +950,10 @@ export default function ThreatScanner() {
       </div>
 
       {/* Right panel — Threat Report */}
-      <div className="w-[320px] shrink-0 flex flex-col p-5 gap-4 overflow-y-auto">
+      <div
+        className="flex flex-col gap-4"
+        style={{ width: 420, flexShrink: 0, position: 'sticky', top: 20, maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', scrollbarWidth: 'thin', scrollbarColor: '#2a2a2a transparent' }}
+      >
         {state === 'idle' ? (
           <div className="flex flex-col items-center justify-center h-full text-center gap-3">
             <ShieldAlert size={28} className="text-neutral-700" strokeWidth={1} />
