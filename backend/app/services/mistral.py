@@ -198,44 +198,36 @@ async def detect_emotional_scores(content: str) -> dict:
     return _parse_json(raw)
 
 
-# ── Audio transcription (Mistral API) ─────────────────────────────────────────
+# ── Audio transcription (Voxtral via OpenRouter) ─────────────────────────────
 
 async def transcribe_audio(audio_bytes: bytes, mime_type: str = "audio/ogg") -> str:
     """
-    Transcribe a voice note using Mistral's multimodal chat endpoint.
+    Transcribe a voice note using Voxtral via OpenRouter.
+    Audio is sent as base64 in the image_url vision format.
     Returns the raw transcription text.
     """
-    if not settings.mistral_api_key:
-        return "[Transcription skipped] Set MISTRAL_API_KEY to enable audio analysis."
+    if not settings.openrouter_api_key:
+        return "[Transcription skipped] Set OPENROUTER_API_KEY to enable audio analysis."
 
     b64 = base64.standard_b64encode(audio_bytes).decode()
 
-    async with httpx.AsyncClient(timeout=120) as client:
-        resp = await client.post(
-            f"{_MISTRAL_BASE}/chat/completions",
-            headers={
-                "Authorization": f"Bearer {settings.mistral_api_key}",
-                "Content-Type":  "application/json",
-            },
-            json={
-                "model": "mistral-large-latest",
-                "messages": [{
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": (
-                                "Transcribe exactly what is said in this audio. "
-                                "Output only the transcription — no commentary, no timestamps."
-                            ),
-                        },
-                        {
-                            "type": "audio_url",
-                            "audio_url": {"url": f"data:{mime_type};base64,{b64}"},
-                        },
-                    ],
-                }],
-            },
-        )
-        resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"].strip()
+    try:
+        messages = [{
+            "role": "user",
+            "content": [
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:{mime_type};base64,{b64}"},
+                },
+                {
+                    "type": "text",
+                    "text": (
+                        "Transcribe exactly what is said in this audio. "
+                        "Output only the transcription — no commentary, no timestamps."
+                    ),
+                },
+            ],
+        }]
+        return await _or_chat("mistralai/voxtral-mini-2507", messages, timeout=120)
+    except Exception as exc:
+        return f"[Transcription failed: {exc}]"
