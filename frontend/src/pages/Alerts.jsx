@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
-import { AlertOctagon, AlertTriangle, ChevronDown, ChevronUp, Phone, Globe } from 'lucide-react'
+import { AlertOctagon, AlertTriangle, ChevronDown, ChevronUp, Phone, Globe, X } from 'lucide-react'
 import { getAlerts } from '../lib/api'
 import { useLang } from '../lib/LanguageContext'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -84,11 +84,120 @@ function VectorBar({ label, value }) {
   )
 }
 
+function AlertExpandedContent({ alert, t }) {
+  const actions = ACTIONS_BY_TYPE[alert.type] ?? DEFAULT_ACTIONS
+  return (
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <div>
+          <p className="text-[10px] uppercase tracking-widest font-mono mb-2" style={{ color: '#555' }}>{t('alerts.entities')}</p>
+          <div className="flex flex-col gap-1.5 font-mono text-[11px]">
+            {alert.entities.phones?.map((p) => (
+              <div key={p} className="flex items-center gap-1.5">
+                <Phone size={9} style={{ color: '#555' }} />
+                <span className="text-amber-400">{p}</span>
+              </div>
+            ))}
+            {alert.entities.domains?.map((d) => (
+              <div key={d} className="flex items-center gap-1.5">
+                <Globe size={9} style={{ color: '#555' }} />
+                <span className="text-red-400 break-all">{d}</span>
+              </div>
+            ))}
+            {alert.entities.keywords?.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {alert.entities.keywords.map((k) => (
+                  <span key={k} className="bg-[#222] border border-[#2a2a2a] px-1 py-0.5 rounded text-[10px]" style={{ color: '#666' }}>{k}</span>
+                ))}
+              </div>
+            )}
+            {!alert.entities.phones?.length && !alert.entities.domains?.length && <span style={{ color: '#555' }}>—</span>}
+          </div>
+        </div>
+        <div>
+          <p className="text-[10px] uppercase tracking-widest font-mono mb-2" style={{ color: '#555' }}>{t('report.vectors')}</p>
+          <div className="flex flex-col gap-2">
+            <VectorBar label={t('report.urgency')}   value={alert.urgency} />
+            <VectorBar label={t('report.coercion')}  value={alert.coercion} />
+            <VectorBar label={t('report.authority')} value={alert.authority} />
+          </div>
+        </div>
+      </div>
+      {alert.campaign && (
+        <div>
+          <p className="text-[10px] uppercase tracking-widest font-mono mb-1" style={{ color: '#555' }}>{t('alerts.campaign')}</p>
+          <span className="text-[11px] font-mono text-amber-400">{alert.campaign}</span>
+        </div>
+      )}
+      <div>
+        <p className="text-[10px] uppercase tracking-widest font-mono mb-2" style={{ color: '#555' }}>{t('report.actions')}</p>
+        <ul className="flex flex-col gap-1.5">
+          {actions.map((a, i) => (
+            <li key={i} className="flex items-start gap-2 text-[12px]" style={{ color: '#e5e2e1' }}>
+              <span className="text-amber-400 font-mono shrink-0">{i + 1}.</span>
+              {a}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </>
+  )
+}
+
+function AlertBottomSheet({ alert, onClose }) {
+  const { t } = useLang()
+  const styles = LEVEL_STYLES[alert.level]
+  const Icon   = styles.icon
+
+  return (
+    <>
+      <div
+        className="fixed inset-0 z-40"
+        style={{ background: 'rgba(0,0,0,0.65)' }}
+        onClick={onClose}
+      />
+      <div
+        className="fixed bottom-0 left-0 right-0 z-50 flex flex-col"
+        style={{ height: '70vh', background: '#111111', borderTop: '1px solid #262626', borderRadius: '12px 12px 0 0' }}
+      >
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-1 shrink-0">
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: '#333' }} />
+        </div>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#262626] shrink-0">
+          <div className="flex items-center gap-2">
+            <Icon size={14} strokeWidth={1.5} style={{ color: styles.color }} />
+            <span className="text-[11px] font-semibold" style={{ color: '#e5e2e1' }}>{alert.title}</span>
+          </div>
+          <button onClick={onClose} className="text-neutral-600 active:text-neutral-400 transition-colors p-1">
+            <X size={14} />
+          </button>
+        </div>
+
+        {/* Summary row */}
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-[#1e1e1e] shrink-0">
+          <span className="text-[24px] font-mono font-bold" style={{ color: styles.color }}>{alert.score}</span>
+          <div>
+            <p className="text-[10px] font-mono" style={{ color: '#a08e7a' }}>{alert.region}</p>
+            <p className="text-[10px] font-mono" style={{ color: '#555' }}>{alert.timestamp}</p>
+          </div>
+        </div>
+
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+          <AlertExpandedContent alert={alert} t={t} />
+        </div>
+      </div>
+    </>
+  )
+}
+
 function AlertCard({ alert, expanded, onToggle }) {
   const { t } = useLang()
   const styles  = LEVEL_STYLES[alert.level]
   const Icon    = styles.icon
-  const actions = ACTIONS_BY_TYPE[alert.type] ?? DEFAULT_ACTIONS
 
   return (
     <div
@@ -102,11 +211,7 @@ function AlertCard({ alert, expanded, onToggle }) {
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span
               className="text-[9px] uppercase tracking-widest font-mono font-semibold px-1.5 py-0.5 rounded border"
-              style={{
-                color:       styles.color,
-                background:  `${styles.color}15`,
-                borderColor: `${styles.color}35`,
-              }}
+              style={{ color: styles.color, background: `${styles.color}15`, borderColor: `${styles.color}35` }}
             >
               {alert.level === 'critical' ? t('alerts.critical') : 'HIGH'}
             </span>
@@ -134,10 +239,7 @@ function AlertCard({ alert, expanded, onToggle }) {
         </div>
 
         <div className="flex flex-col items-end gap-2 shrink-0">
-          <span
-            className="text-[22px] font-mono font-bold tabular-nums leading-none"
-            style={{ color: styles.color }}
-          >
+          <span className="text-[22px] font-mono font-bold tabular-nums leading-none" style={{ color: styles.color }}>
             {alert.score}
           </span>
           <button
@@ -152,63 +254,7 @@ function AlertCard({ alert, expanded, onToggle }) {
 
       {expanded && (
         <div className="border-t border-[#262626] px-3 py-3 md:px-5 md:py-4 flex flex-col gap-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            {/* Entities */}
-            <div>
-              <p className="text-[10px] uppercase tracking-widest font-mono mb-2" style={{ color: '#555' }}>{t('alerts.entities')}</p>
-              <div className="flex flex-col gap-1.5 font-mono text-[11px]">
-                {alert.entities.phones?.map((p) => (
-                  <div key={p} className="flex items-center gap-1.5">
-                    <Phone size={9} style={{ color: '#555' }} />
-                    <span className="text-amber-400">{p}</span>
-                  </div>
-                ))}
-                {alert.entities.domains?.map((d) => (
-                  <div key={d} className="flex items-center gap-1.5">
-                    <Globe size={9} style={{ color: '#555' }} />
-                    <span className="text-red-400 break-all">{d}</span>
-                  </div>
-                ))}
-                {alert.entities.keywords?.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {alert.entities.keywords.map((k) => (
-                      <span key={k} className="bg-[#222] border border-[#2a2a2a] px-1 py-0.5 rounded text-[10px]" style={{ color: '#666' }}>{k}</span>
-                    ))}
-                  </div>
-                )}
-                {!alert.entities.phones?.length && !alert.entities.domains?.length && <span style={{ color: '#555' }}>—</span>}
-              </div>
-            </div>
-
-            {/* Vectors */}
-            <div>
-              <p className="text-[10px] uppercase tracking-widest font-mono mb-2" style={{ color: '#555' }}>{t('report.vectors')}</p>
-              <div className="flex flex-col gap-2">
-                <VectorBar label={t('report.urgency')}   value={alert.urgency} />
-                <VectorBar label={t('report.coercion')}  value={alert.coercion} />
-                <VectorBar label={t('report.authority')} value={alert.authority} />
-              </div>
-            </div>
-          </div>
-
-          {alert.campaign && (
-            <div>
-              <p className="text-[10px] uppercase tracking-widest font-mono mb-1" style={{ color: '#555' }}>{t('alerts.campaign')}</p>
-              <span className="text-[11px] font-mono text-amber-400">{alert.campaign}</span>
-            </div>
-          )}
-
-          <div>
-            <p className="text-[10px] uppercase tracking-widest font-mono mb-2" style={{ color: '#555' }}>{t('report.actions')}</p>
-            <ul className="flex flex-col gap-1.5">
-              {actions.map((a, i) => (
-                <li key={i} className="flex items-start gap-2 text-[11px]" style={{ color: '#e5e2e1' }}>
-                  <span className="text-amber-400 font-mono shrink-0">{i + 1}.</span>
-                  {a}
-                </li>
-              ))}
-            </ul>
-          </div>
+          <AlertExpandedContent alert={alert} t={t} />
         </div>
       )}
     </div>
@@ -223,8 +269,15 @@ export default function Alerts() {
   const [loading, setLoading]       = useState(true)
   const [filter, setFilter]         = useState('all')
   const [expandedId, setExpandedId] = useState(null)
+  const [isMobile, setIsMobile]     = useState(() => window.innerWidth < 768)
 
   const alertsRef = useRef(null)
+
+  useEffect(() => {
+    const fn = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', fn)
+    return () => window.removeEventListener('resize', fn)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -302,12 +355,18 @@ export default function Alerts() {
             <AlertCard
               key={alert.id}
               alert={alert}
-              expanded={expandedId === alert.id}
+              expanded={!isMobile && expandedId === alert.id}
               onToggle={() => setExpandedId(expandedId === alert.id ? null : alert.id)}
             />
           ))}
         </div>
       )}
+
+      {/* Bottom sheet — mobile only */}
+      {isMobile && expandedId && (() => {
+        const a = alerts.find((x) => x.id === expandedId)
+        return a ? <AlertBottomSheet alert={a} onClose={() => setExpandedId(null)} /> : null
+      })()}
     </div>
   )
 }
