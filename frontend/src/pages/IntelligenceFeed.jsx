@@ -313,26 +313,139 @@ function IncidentCard({ inc, isSelected, onClick }) {
   return (
     <div
       onClick={onClick}
-      className={`px-4 py-3 border-b border-[#1e1e1e] cursor-pointer transition-colors ${
-        isSelected ? 'bg-[#1f1e1d]' : 'hover:bg-[#191919]'
+      className={`border-b border-[#1e1e1e] cursor-pointer transition-colors ${
+        isSelected ? 'bg-[#1f1e1d]' : 'active:bg-[#191919]'
       }`}
-      style={{ minHeight: 44 }}
+      style={{ padding: 12, minHeight: 64, gap: 6 }}
     >
-      <div className="flex items-center justify-between mb-1.5">
-        <span className={`text-[9px] uppercase tracking-wider font-medium border px-1.5 py-0.5 rounded ${typeBadge(inc.type)}`}>
+      <div className="flex items-start justify-between mb-1.5 gap-2">
+        <span className={`text-[9px] uppercase tracking-wider font-medium border px-1.5 py-0.5 rounded shrink-0 ${typeBadge(inc.type)}`}>
           {inc.type}
         </span>
-        <span className="text-[13px] font-mono font-semibold tabular-nums" style={{ color: scoreColor(inc.risk) }}>
+        <span className="text-[20px] font-mono font-semibold tabular-nums leading-none shrink-0" style={{ color: scoreColor(inc.risk) }}>
           {inc.risk}
         </span>
       </div>
-      <p className="text-[12px] text-neutral-200 mb-1 line-clamp-2">{inc.desc}</p>
-      <div className="flex items-center gap-2 text-[10px] font-mono text-neutral-500">
+      <p className="text-[12px] text-neutral-200 mb-1.5 leading-snug" style={{ overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', textOverflow: 'ellipsis' }}>
+        {inc.desc}
+      </p>
+      <div className="flex items-center gap-1.5 text-[10px] font-mono text-neutral-500">
         <span className="truncate">{inc.location}</span>
         <span>·</span>
         <span className="shrink-0">{inc.time}</span>
       </div>
     </div>
+  )
+}
+
+function MobileDetailSheet({ inc, onClose }) {
+  const { t } = useLang()
+  const actions = ACTIONS_BY_TYPE[inc.type] ?? DEFAULT_ACTIONS
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 z-40"
+        style={{ background: 'rgba(0,0,0,0.6)' }}
+        onClick={onClose}
+      />
+      {/* Sheet */}
+      <div
+        className="fixed bottom-0 left-0 right-0 z-50 flex flex-col"
+        style={{ height: '70vh', background: '#111111', borderTop: '1px solid #262626', borderRadius: '12px 12px 0 0' }}
+      >
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-1 shrink-0">
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: '#333' }} />
+        </div>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#262626] shrink-0">
+          <span className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono">{inc.shortId}</span>
+          <button onClick={onClose} className="text-neutral-600 active:text-neutral-400 transition-colors p-1">
+            <X size={14} />
+          </button>
+        </div>
+
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-[28px] font-mono font-bold" style={{ color: scoreColor(inc.risk) }}>{inc.risk}</span>
+            <div>
+              <span className={`text-[9px] uppercase tracking-wider font-medium border px-1.5 py-0.5 rounded ${typeBadge(inc.type)}`}>
+                {inc.type}
+              </span>
+              <p className="text-[10px] text-neutral-500 font-mono mt-1">{inc.location}</p>
+              <p className="text-[10px] text-neutral-600 font-mono">{formatDateTime(inc.created_at)}</p>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono mb-2">{t('intel.detail.entities')}</p>
+            <div className="flex flex-col gap-1.5 font-mono text-[11px]">
+              {inc.entities.phones?.map((p) => (
+                <div key={p} className="flex items-center gap-2">
+                  <Phone size={10} className="text-neutral-600 shrink-0" />
+                  <span className="text-amber-400">{p}</span>
+                </div>
+              ))}
+              {inc.entities.domains?.map((d) => (
+                <div key={d} className="flex items-center gap-2">
+                  <Globe size={10} className="text-neutral-600 shrink-0" />
+                  <span className="text-red-400 break-all">{d}</span>
+                </div>
+              ))}
+              {inc.entities.keywords?.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {inc.entities.keywords.map((k) => (
+                    <span key={k} className="bg-[#222] border border-[#2a2a2a] text-neutral-400 px-1.5 py-0.5 rounded text-[10px]">{k}</span>
+                  ))}
+                </div>
+              )}
+              {!inc.entities.phones?.length && !inc.entities.domains?.length && !inc.entities.keywords?.length && (
+                <p className="text-neutral-600">—</p>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono mb-2">{t('intel.detail.emotional')}</p>
+            <div className="flex flex-col gap-2">
+              <VectorBar label={t('report.urgency')}   value={inc.urgency_score} />
+              <VectorBar label={t('report.coercion')}  value={inc.coercion_score} />
+              <VectorBar label={t('report.authority')} value={inc.authority_score} />
+            </div>
+          </div>
+
+          {inc.campaign && (
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono mb-1.5">{t('intel.detail.campaign')}</p>
+              <div className="flex items-center gap-2">
+                <GitBranch size={10} className="text-neutral-600" />
+                <span className="text-[11px] text-amber-400 font-mono">{inc.campaign}</span>
+              </div>
+            </div>
+          )}
+
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono mb-2">{t('intel.detail.actions')}</p>
+            <ul className="flex flex-col gap-2">
+              {actions.map((a, i) => (
+                <li key={i} className="flex items-start gap-2 text-[12px] text-neutral-300">
+                  <span className="text-amber-400 font-mono shrink-0 mt-0.5">{i + 1}.</span>
+                  {a}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {inc.similar_count > 0 && (
+            <p className="text-[11px] text-neutral-600 font-mono">{inc.similar_count} {t('report.similar')} encontrados</p>
+          )}
+        </div>
+      </div>
+    </>
   )
 }
 
@@ -462,7 +575,7 @@ export default function IntelligenceFeed() {
         )}
 
         {/* Rows / Cards */}
-        <div ref={tableBodyRef} className="flex-1 overflow-y-auto">
+        <div ref={tableBodyRef} className="flex-1 overflow-y-auto" style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 0' } : {}}>
           {loading ? (
             <div className="flex items-center justify-center h-48">
               <LoadingSpinner message="Cargando incidentes..." />
@@ -516,13 +629,19 @@ export default function IntelligenceFeed() {
         )}
       </div>
 
-      {/* Detail panel */}
-      {selectedInc ? (
+      {/* Detail panel — desktop right panel */}
+      {!isMobile && selectedInc && (
         <DetailPanel inc={selectedInc} onClose={() => setSelectedId(null)} />
-      ) : (
+      )}
+      {!isMobile && !selectedInc && (
         <div className="hidden md:flex w-[270px] shrink-0 items-center justify-center p-6 text-center border-l border-[#262626]">
           <p className="text-[12px] text-neutral-600">{t('intel.detail.noSelect')}</p>
         </div>
+      )}
+
+      {/* Detail bottom sheet — mobile */}
+      {isMobile && selectedInc && (
+        <MobileDetailSheet inc={selectedInc} onClose={() => setSelectedId(null)} />
       )}
     </div>
   )
