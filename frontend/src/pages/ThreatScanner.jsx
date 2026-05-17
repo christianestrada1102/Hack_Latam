@@ -61,6 +61,7 @@ function mapApiResult(api) {
     manipulationSummary: api.manipulation_summary   ?? null,
     similar:             api.similar_count          ?? 0,
     region:              api.region                 ?? null,
+    virustotal:          api.virustotal             ?? null,
   }
 }
 
@@ -859,6 +860,34 @@ export default function ThreatScanner() {
                 ))}
               </ul>
             </div>
+
+            {/* VirusTotal external verification */}
+            {display.virustotal && (
+              <div className="card-base p-4">
+                <p className="text-[10px] uppercase tracking-widest text-neutral-500 font-mono mb-3 text-left">
+                  Verificación Externa
+                </p>
+                <div className="flex flex-col gap-1.5">
+                  {display.virustotal.malicious > 0 ? (
+                    <p className="text-[13px] font-mono font-semibold" style={{ color: '#ef4444' }}>
+                      {display.virustotal.malicious}/{display.virustotal.total_engines} motores detectaron amenaza
+                    </p>
+                  ) : (
+                    <p className="text-[13px] font-mono font-semibold" style={{ color: '#10b981' }}>
+                      Sin detecciones conocidas
+                    </p>
+                  )}
+                  {display.virustotal.suspicious > 0 && (
+                    <p className="text-[11px] font-mono" style={{ color: '#f59e0b' }}>
+                      {display.virustotal.suspicious} motor{display.virustotal.suspicious !== 1 ? 'es' : ''} sospechoso{display.virustotal.suspicious !== 1 ? 's' : ''}
+                    </p>
+                  )}
+                </div>
+                <p className="text-[9px] font-mono mt-3" style={{ color: '#444' }}>
+                  Powered by VirusTotal
+                </p>
+              </div>
+            )}
 
             <p className="text-center text-[11px] text-neutral-600 font-mono">
               {display.similar} {t('report.casesIn')} {truncateRegion(display.region) ?? 'región desconocida'}

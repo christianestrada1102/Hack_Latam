@@ -13,6 +13,7 @@ from app.models import Incident
 from app.services import embeddings
 from app.services import make as make_svc
 from app.services import mistral as mistral_svc
+from app.services import virustotal as vt_svc
 from app.services import zavu as zavu_svc
 
 router = APIRouter()
@@ -31,6 +32,7 @@ class ThreatReport(BaseModel):
     recommended_actions: list[str]
     panic_interrupt: bool
     manipulation_summary: str | None = None
+    virustotal: dict | None = None
 
 
 def _safe_int(value, default: int = 0) -> int:
@@ -71,8 +73,9 @@ async def analyze(
 
     All available text is combined before analysis.
     """
-    text_parts: list[str] = []
-    embed_text: str       = ""
+    text_parts:  list[str] = []
+    embed_text:  str       = ""
+    checked_url: str | None = None
 
     try:
         # ── Collect extraction coroutines (image + audio run in parallel) ──────
@@ -112,7 +115,8 @@ async def analyze(
 
         # ── URL: fetch page content ───────────────────────────────────────────
         if url and url.strip():
-            raw_url = url.strip()
+            checked_url = url.strip()
+            raw_url = checked_url
             try:
                 async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
                     page    = await client.get(raw_url)
@@ -131,11 +135,20 @@ async def analyze(
 
         embed_text = "\n\n---\n\n".join(text_parts)
 
-        # ── Threat analysis + emotional scoring in parallel ───────────────────
-        analysis, emotional = await asyncio.gather(
-            mistral_svc.analyze_text_threat(embed_text),
-            mistral_svc.detect_emotional_scores(embed_text),
-        )
+        # ── Threat analysis + emotional scoring + VirusTotal in parallel ─────
+        if checked_url:
+            analysis, emotional, vt_result = await asyncio.gather(
+                mistral_svc.analyze_text_threat(embed_text),
+                mistral_svc.detect_emotional_scores(embed_text),
+                vt_svc.check_url(checked_url),
+            )
+        else:
+            analysis, emotional = await asyncio.gather(
+                mistral_svc.analyze_text_threat(embed_text),
+                mistral_svc.detect_emotional_scores(embed_text),
+            )
+            vt_result = None
+
         analysis = _merge_emotional(analysis, emotional)
 
     except HTTPException:
@@ -146,6 +159,13 @@ async def analyze(
         raise HTTPException(status_code=502, detail=f"Unexpected AI response: {exc}")
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Analysis failed: {exc}")
+
+    # ── VirusTotal risk boost ─────────────────────────────────────────────────
+    base_risk = _safe_int(analysis.get("risk_score"))
+    if vt_result and vt_result.get("malicious", 0) > 0:
+        boost = min(10 + vt_result["malicious"], 15)
+        base_risk = min(base_risk + boost, 100)
+    analysis["risk_score"] = base_risk
 
     # ── Embed + similarity ────────────────────────────────────────────────────
     emb         = await embeddings.generate_embedding(embed_text)
@@ -182,6 +202,7 @@ async def analyze(
         recommended_actions =analysis.get("recommended_actions", []),
         panic_interrupt     =incident.risk_score > 75,
         manipulation_summary=analysis.get("manipulation_summary"),
+        virustotal          =vt_result,
     )
 
     incident_payload = {
