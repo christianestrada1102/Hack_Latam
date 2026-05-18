@@ -386,10 +386,19 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
     Construido con IA para proteger a LATAM<br>
     <strong>hack@latam 2026 · Track DEF/ACC</strong>
   </p>
-  <p>
-    <a href="https://haven-lat.codebynas.dev">haven-lat.codebynas.dev</a>
 
-      <a href="https://github.com/christianestrada1102/Hack_Latam">
+
+<p align="center">
+
+  <a href="https://haven-lat.codebynas.dev">
+
+    🌐 Demo
+
+  </a>
+
+  ·
+
+  <a href="https://github.com/christianestrada1102/Hack_Latam">
 
     <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" width="14" style="vertical-align:middle;" />
 
@@ -406,9 +415,10 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
     LinkedIn
 
   </a>
-  
- 
-  </p>
+
+</p>
+
+
   <p>
     <sub>© 2026 CodeByNas · MIT License</sub>
   </p>
