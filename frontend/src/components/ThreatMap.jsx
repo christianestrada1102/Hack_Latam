@@ -104,6 +104,8 @@ export default function ThreatMap({ incidents = [] }) {
         map.current.getCanvas().style.cursor = ''
         popup.remove()
       })
+
+      console.log('[ThreatMap] layer added, map ready')
     })
 
     return () => {
@@ -113,28 +115,37 @@ export default function ThreatMap({ incidents = [] }) {
   }, [])
 
   useEffect(() => {
-    if (!map.current || !map.current.isStyleLoaded()) return
+    if (!map.current) return
 
-    const features = incidents
-      .map((inc) => {
-        const region = inc.location || inc.region
-        const coords = getCoords(region)
-        if (!coords) return null
-        return {
-          type: 'Feature',
-          geometry: { type: 'Point', coordinates: coords },
-          properties: {
-            risk_score:  inc.risk_score,
-            threat_type: inc.threat_type,
-            region,
-          },
-        }
-      })
-      .filter(Boolean)
+    const updatePoints = () => {
+      const features = incidents
+        .map((inc) => {
+          const region = inc.location || inc.region
+          const coords = getCoords(region)
+          if (!coords) return null
+          return {
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: coords },
+            properties: {
+              risk_score:  inc.risk_score,
+              threat_type: inc.threat_type,
+              region,
+            },
+          }
+        })
+        .filter(Boolean)
 
-    console.log('[ThreatMap] updating source:', features.length, 'points')
-    const source = map.current.getSource('incidents')
-    if (source) source.setData({ type: 'FeatureCollection', features })
+      console.log('[ThreatMap] updating', features.length, 'points')
+
+      const source = map.current.getSource('incidents')
+      if (source) source.setData({ type: 'FeatureCollection', features })
+    }
+
+    if (map.current.isStyleLoaded()) {
+      updatePoints()
+    } else {
+      map.current.once('load', updatePoints)
+    }
   }, [incidents])
 
   return (
