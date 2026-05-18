@@ -3,8 +3,11 @@ Zavu WhatsApp alert integration.
 All functions are designed to be called via asyncio.create_task().
 """
 import httpx
+from sqlalchemy import select
 
 from app.config import settings
+from app.database import SessionLocal
+from app.models.subscriber import AlertSubscriber
 
 _ZAVU_BASE = "https://api.zavu.dev/v1"
 
@@ -39,8 +42,28 @@ async def send_whatsapp_alert(phone: str, message: str) -> None:
             print(f"[Zavu] Request failed: {exc}")
 
 
+async def _gather_phones() -> list[str]:
+    """Return ALERT_PHONE + all active DB subscribers, deduplicated."""
+    phones: list[str] = []
+    if settings.alert_phone:
+        phones.append(settings.alert_phone)
+    try:
+        async with SessionLocal() as db:
+            result = await db.execute(
+                select(AlertSubscriber.phone).where(AlertSubscriber.active.is_(True))
+            )
+            for p in result.scalars().all():
+                if p not in phones:
+                    phones.append(p)
+    except Exception as exc:
+        print(f"[Zavu] DB subscriber query failed: {exc}")
+    return phones
+
+
 async def send_threat_alert(incident: dict) -> None:
-    if not settings.alert_phone:
+    phones = await _gather_phones()
+    if not phones:
+        print("[Zavu] Skipped — no ALERT_PHONE and no active subscribers")
         return
 
     incident_id_short  = str(incident.get("incident_id", "")).replace("-", "")[:8]
@@ -57,4 +80,5 @@ async def send_threat_alert(incident: dict) -> None:
         f"No compartas datos personales."
     )
 
-    await send_whatsapp_alert(settings.alert_phone, message[:160])
+    for phone in phones:
+        await send_whatsapp_alert(phone, message[:160])

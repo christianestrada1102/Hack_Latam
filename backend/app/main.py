@@ -5,8 +5,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import init_db
-from app.models import Incident  # noqa: F401 — registers model with Base.metadata
+from app.models import Incident, AlertSubscriber  # noqa: F401 — registers models with Base.metadata
 from app.routers import analyze, feed
+from app.routers import alerts
 from app.services import zavu as zavu_svc
 
 
@@ -32,8 +33,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(analyze.router, prefix="/api",      tags=["analyze"])
-app.include_router(feed.router,    prefix="/api/feed",  tags=["feed"])
+app.include_router(analyze.router, prefix="/api",          tags=["analyze"])
+app.include_router(feed.router,    prefix="/api/feed",    tags=["feed"])
+app.include_router(alerts.router,  prefix="/api/alerts",  tags=["alerts"])
 
 
 @app.get("/health")

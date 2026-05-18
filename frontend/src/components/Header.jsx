@@ -1,14 +1,18 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Shield } from 'lucide-react'
+import { BellIcon } from '@radix-ui/react-icons'
 import gsap from 'gsap'
 import { useLang } from '../lib/LanguageContext'
+import AlertsModal from './AlertsModal'
 
 export default function Header({ menuOpen, onMenuToggle }) {
   const { pathname } = useLocation()
   const { lang, toggle, t } = useLang()
   const normalizedPath = pathname.replace(/^\/app/, '') || '/'
   const title = t(`page.${normalizedPath}`) || 'HAVEN'
+
+  const [showAlerts, setShowAlerts] = useState(false)
 
   const line1 = useRef(null)
   const line2 = useRef(null)
@@ -49,20 +53,34 @@ export default function Header({ menuOpen, onMenuToggle }) {
         HAVEN
       </span>
 
-      {/* Right: ES/EN toggle */}
-      <button
-        onClick={toggle}
-        className="flex items-center gap-1 font-mono text-[11px] tracking-widest"
-        aria-label="Toggle language"
-      >
-        <span className={lang === 'es' ? 'text-amber-400 font-semibold' : 'text-neutral-600 hover:text-neutral-400'}>
-          ES
-        </span>
-        <span className="text-neutral-700">|</span>
-        <span className={lang === 'en' ? 'text-amber-400 font-semibold' : 'text-neutral-600 hover:text-neutral-400'}>
-          EN
-        </span>
-      </button>
+      {/* Right: bell + ES/EN toggle */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => setShowAlerts(true)}
+          className="flex items-center justify-center transition-colors hover:text-neutral-300"
+          style={{ color: '#555' }}
+          aria-label="Recibir alertas SMS"
+          title="Recibir alertas SMS"
+        >
+          <BellIcon style={{ width: 14, height: 14 }} />
+        </button>
+
+        <button
+          onClick={toggle}
+          className="flex items-center gap-1 font-mono text-[11px] tracking-widest"
+          aria-label="Toggle language"
+        >
+          <span className={lang === 'es' ? 'text-amber-400 font-semibold' : 'text-neutral-600 hover:text-neutral-400'}>
+            ES
+          </span>
+          <span className="text-neutral-700">|</span>
+          <span className={lang === 'en' ? 'text-amber-400 font-semibold' : 'text-neutral-600 hover:text-neutral-400'}>
+            EN
+          </span>
+        </button>
+      </div>
+
+      {showAlerts && <AlertsModal onClose={() => setShowAlerts(false)} />}
     </header>
   )
 }

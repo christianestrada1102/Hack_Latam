@@ -62,6 +62,17 @@ export async function reportIncident(incidentId) {
   }
 }
 
+export async function subscribeAlerts(phone) {
+  const res = await fetch(`${BASE_URL}/api/alerts/subscribe`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ phone }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.detail || `Error ${res.status}`)
+  return data
+}
+
 export async function analyzeContent(formData) {
   try {
     const res = await fetch(`${BASE_URL}/api/analyze`, {
