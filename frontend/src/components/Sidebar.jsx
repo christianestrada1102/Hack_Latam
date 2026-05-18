@@ -105,7 +105,7 @@ export default function Sidebar({ open, onClose }) {
           >
             ← Volver a HAVEN
           </Link>
-          <p style={{ fontFamily: 'OffBitTrial, monospace', fontSize: '10px', color: '#a08e7a', letterSpacing: '0.05em', whiteSpace: 'nowrap', overflow: 'hidden' }}>HAVEN · DEF/ACC · hack@latam 2026</p>
+          <p style={{ fontFamily: 'OffBitTrial, monospace', fontSize: '10px', color: '#c4a75a', letterSpacing: '0.05em', whiteSpace: 'nowrap', overflow: 'hidden' }}>HAVEN · DEF/ACC · hack@latam 2026</p>
         </div>
       </aside>
     </>
