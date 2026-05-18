@@ -16,7 +16,6 @@ class Settings(BaseSettings):
         "http://localhost:5173",
         "https://haven-lat.vercel.app",
         "https://*.vercel.app",
-        "https://haven-lat.codebynas.dev/",
     ]
 
 

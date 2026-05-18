@@ -83,6 +83,7 @@ function buildGeoJSON(incidents) {
       }
     })
     .filter(Boolean)
+  console.log('[ThreatMap] mapped points:', features.length, features.map(f => f.properties.region))
   return { type: 'FeatureCollection', features }
 }
 

@@ -137,6 +137,7 @@ export default function Dashboard() {
             type:     inc.threat_type,
           }))
         )
+        console.log('[Dashboard→ThreatMap] incidents:', validFeed.map(i => i.region))
         setAllIncidents(validFeed)
       }
 
