@@ -2,6 +2,7 @@ import asyncio
 import json
 import re
 import uuid
+from collections import Counter
 from typing import Optional
 
 import httpx
@@ -69,6 +70,7 @@ class ThreatReport(BaseModel):
     virustotal: dict | None = None
     analyzed_content: str | None = None
     region: str | None = None
+    similar_region: str | None = None
 
 
 def _safe_int(value, default: int = 0) -> int:
@@ -281,8 +283,12 @@ async def analyze(
         print("[analyze] embedding is None — skipping similarity search, similar_count=0")
 
     similar_rows = await embeddings.find_similar(db, emb) if emb else []
-    print(f"[analyze] similar_rows found={len(similar_rows)}, scores={[round(d,4) for _,d in similar_rows]}")
-    similar_ids = [rid for rid, _ in similar_rows]
+    print(f"[analyze] similar_rows found={len(similar_rows)}, scores={[round(d,4) for _,_,d in similar_rows]}")
+    similar_ids    = [rid for rid, _, _ in similar_rows]
+    similar_region_counts = Counter(r for _, r, _ in similar_rows if r)
+    similar_region: str | None = (
+        similar_region_counts.most_common(1)[0][0] if similar_region_counts else None
+    )
 
     # ── Persist ───────────────────────────────────────────────────────────────
     incident = Incident(
@@ -318,6 +324,7 @@ async def analyze(
         virustotal          =vt_result,
         analyzed_content    =embed_text[:3000],
         region              =incident.region,
+        similar_region      =similar_region,
     )
 
     incident_payload = {

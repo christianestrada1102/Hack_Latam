@@ -62,6 +62,7 @@ function mapApiResult(api) {
     manipulationSummary: api.manipulation_summary   ?? null,
     similar:             api.similar_count          ?? 0,
     region:              api.region                 ?? null,
+    similar_region:      api.similar_region         ?? null,
     virustotal:          api.virustotal             ?? null,
   }
 }
@@ -75,9 +76,9 @@ function scoreColor(s) {
 const truncateRegion = (r, max = 20) =>
   r ? (r.length > max ? r.slice(0, max) + '…' : r) : null
 
-function similarLabel(count, region) {
+function similarLabel(count, similarRegion) {
   if (!count) return null
-  const loc = region ? `en ${truncateRegion(region)}` : 'detectados en LATAM'
+  const loc = similarRegion ? `en ${truncateRegion(similarRegion)}` : 'en LATAM'
   return `${count} casos similares ${loc}`
 }
 
@@ -1024,9 +1025,9 @@ export default function ThreatScanner() {
                 <span className="inline-block text-[11px] font-semibold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded uppercase tracking-widest max-w-full truncate">
                   {display.category}
                 </span>
-                {similarLabel(display.similar, display.region) && (
+                {similarLabel(display.similar, display.similar_region) && (
                   <p className="text-[11px] text-neutral-500 font-mono mt-2 truncate">
-                    {similarLabel(display.similar, display.region)}
+                    {similarLabel(display.similar, display.similar_region)}
                   </p>
                 )}
               </div>
@@ -1131,9 +1132,9 @@ export default function ThreatScanner() {
               </div>
             )}
 
-            {similarLabel(display.similar, display.region) && (
+            {similarLabel(display.similar, display.similar_region) && (
               <p className="text-center text-[11px] text-neutral-600 font-mono">
-                {similarLabel(display.similar, display.region)}
+                {similarLabel(display.similar, display.similar_region)}
               </p>
             )}
           </>
