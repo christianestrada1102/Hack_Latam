@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { ChevronRight, AlertOctagon, ShieldAlert, CheckCircle, X } from 'lucide-react'
+import { CheckCircledIcon } from '@radix-ui/react-icons'
 import { analyzeContent, reportIncident } from '../lib/api'
 import { useLang } from '../lib/LanguageContext'
 
@@ -978,13 +979,37 @@ export default function ThreatScanner() {
             </button>
           </div>
         ) : display.score === 0 && display.category === 'unknown' ? (
-          <div className="card-base p-5 flex flex-col items-center gap-3 text-center">
-            <div style={{ fontSize: 36, lineHeight: 1, color: '#22c55e' }}>✓</div>
-            <p className="text-[14px] font-semibold font-mono" style={{ color: '#22c55e' }}>
-              Contenido seguro
-            </p>
-            <p className="text-[12px] leading-relaxed" style={{ color: '#a3a3a3' }}>
-              No se detectaron indicadores de fraude, phishing o manipulación en este contenido.
+          <div className="card-base p-5 flex flex-col gap-4">
+            {/* Header */}
+            <div className="flex items-center gap-2.5">
+              <CheckCircledIcon style={{ width: 26, height: 26, color: '#22c55e', flexShrink: 0 }} />
+              <p className="text-[15px] font-semibold font-mono" style={{ color: '#22c55e' }}>
+                Contenido seguro
+              </p>
+            </div>
+
+            {/* Why it's safe */}
+            {display.manipulationSummary && (
+              <p className="text-[12px] leading-relaxed" style={{ color: '#a3a3a3' }}>
+                {display.manipulationSummary}
+              </p>
+            )}
+
+            {/* Safety confirmations */}
+            {display.actions.length > 0 && (
+              <ul className="flex flex-col gap-2">
+                {display.actions.map((a, i) => (
+                  <li key={i} className="flex items-start gap-2 text-[11px]" style={{ color: '#a3a3a3' }}>
+                    <CheckCircledIcon style={{ width: 13, height: 13, color: '#22c55e', marginTop: 1, flexShrink: 0 }} />
+                    {a}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/* Footer */}
+            <p className="text-[10px] font-mono" style={{ color: '#555' }}>
+              Este análisis fue realizado por HAVEN usando IA multimodal
             </p>
           </div>
         ) : (
