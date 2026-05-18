@@ -1,18 +1,19 @@
-import Globe from 'globe.gl'
+import maplibregl from 'maplibre-gl'
+import 'maplibre-gl/dist/maplibre-gl.css'
 import { useEffect, useRef } from 'react'
 
 const GEOCODING = {
-  'Chihuahua':   [28.6353,  -106.0889],
-  'Juárez':      [31.6904,  -106.4245],
-  'CDMX':        [19.4326,  -99.1332 ],
-  'México':      [19.4326,  -99.1332 ],
-  'Mexico':      [19.4326,  -99.1332 ],
-  'Monterrey':   [25.6866,  -100.3161],
-  'Guadalajara': [20.6597,  -103.3496],
-  'Bogotá':      [4.7110,   -74.0721 ],
-  'Lima':        [-12.0464, -77.0428 ],
-  'Buenos Aires':[-34.6037, -58.3816 ],
-  'São Paulo':   [-23.5505, -46.6333 ],
+  'Chihuahua':    [-106.0889, 28.6353 ],
+  'Juárez':       [-106.4245, 31.6904 ],
+  'CDMX':         [-99.1332,  19.4326 ],
+  'México':       [-99.1332,  19.4326 ],
+  'Mexico':       [-99.1332,  19.4326 ],
+  'Monterrey':    [-100.3161, 25.6866 ],
+  'Guadalajara':  [-103.3496, 20.6597 ],
+  'Bogotá':       [-74.0721,  4.7110  ],
+  'Lima':         [-77.0428,  -12.0464],
+  'Buenos Aires': [-58.3816,  -34.6037],
+  'São Paulo':    [-46.6333,  -23.5505],
 }
 
 function getCoords(region) {
@@ -24,91 +25,121 @@ function getCoords(region) {
 }
 
 export default function ThreatMap({ incidents = [] }) {
-  const containerRef = useRef()
-  const globeRef     = useRef()
+  const mapContainer = useRef()
+  const map          = useRef()
 
   useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
+    if (map.current) return
 
-    const globe = Globe()(el)
-    globe
-      .width(el.offsetWidth  || 600)
-      .height(el.offsetHeight || 350)
-      .globeImageUrl('//unpkg.com/three-globe/example/img/earth-dark.jpg')
-      .backgroundColor('rgba(0,0,0,0)')
-      .atmosphereColor('#ffc174')
-      .atmosphereAltitude(0.1)
-      .pointOfView({ lat: 15, lng: -85, altitude: 2 })
+    map.current = new maplibregl.Map({
+      container:        mapContainer.current,
+      style:            'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+      center:           [-85, 15],
+      zoom:             3,
+      attributionControl: false,
+    })
 
-    globe.controls().enableZoom      = false
-    globe.controls().autoRotate      = false
-    globe.controls().enableDamping   = true
-    globe.controls().dampingFactor   = 0.05
+    map.current.on('load', () => {
+      map.current.addSource('incidents', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      })
 
-    const tooltipEl = el.querySelector('.scene-tooltip')
-    if (tooltipEl) {
-      tooltipEl.style.zIndex        = '9999'
-      tooltipEl.style.pointerEvents = 'none'
+      map.current.addLayer({
+        id:     'incident-points',
+        type:   'circle',
+        source: 'incidents',
+        paint: {
+          'circle-radius': [
+            'interpolate', ['linear'], ['get', 'risk_score'],
+            60, 6,
+            80, 9,
+            100, 12,
+          ],
+          'circle-color': [
+            'case',
+            ['>=', ['get', 'risk_score'], 80], '#ef4444',
+            '#ffc174',
+          ],
+          'circle-opacity': 0.85,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': [
+            'case',
+            ['>=', ['get', 'risk_score'], 80], '#ef444440',
+            '#ffc17440',
+          ],
+        },
+      })
+
+      const popup = new maplibregl.Popup({
+        closeButton: false,
+        closeOnClick: false,
+        className: 'threat-popup',
+      })
+
+      map.current.on('mouseenter', 'incident-points', (e) => {
+        map.current.getCanvas().style.cursor = 'pointer'
+        const props = e.features[0].properties
+        popup
+          .setLngLat(e.lngLat)
+          .setHTML(`
+            <div style="background:#111;border:1px solid #262626;
+              padding:8px 12px;border-radius:4px;
+              font-family:monospace;font-size:12px;color:#f0ede8">
+              <div style="color:#ffc174;font-size:10px;margin-bottom:4px">
+                ${props.threat_type?.toUpperCase() ?? '—'}
+              </div>
+              <div>${props.region || 'LATAM'}</div>
+              <div style="color:#666;margin-top:4px">
+                Riesgo: <span style="color:${
+                  props.risk_score >= 80 ? '#ef4444' : '#ffc174'
+                }">${props.risk_score}/100</span>
+              </div>
+            </div>
+          `)
+          .addTo(map.current)
+      })
+
+      map.current.on('mouseleave', 'incident-points', () => {
+        map.current.getCanvas().style.cursor = ''
+        popup.remove()
+      })
+    })
+
+    return () => {
+      map.current?.remove()
+      map.current = null
     }
-
-    globeRef.current = globe
-
-    return () => globe._destructor?.()
   }, [])
 
   useEffect(() => {
-    if (!globeRef.current || !incidents.length) return
+    if (!map.current || !map.current.isStyleLoaded()) return
 
-    const points = incidents
+    const features = incidents
       .map((inc) => {
-        const coords = getCoords(inc.location || inc.region)
+        const region = inc.location || inc.region
+        const coords = getCoords(region)
         if (!coords) return null
         return {
-          lat:         coords[0],
-          lng:         coords[1],
-          color:       inc.risk_score >= 80 ? '#ef4444' : '#ffc174',
-          altitude:    inc.risk_score / 1000,
-          threat_type: inc.threat_type,
-          region:      inc.location || inc.region,
-          risk_score:  inc.risk_score,
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: coords },
+          properties: {
+            risk_score:  inc.risk_score,
+            threat_type: inc.threat_type,
+            region,
+          },
         }
       })
       .filter(Boolean)
 
-    console.log('[ThreatMap Globe] points:', points.length, points.map(p => p.region))
-
-    globeRef.current
-      .pointsData(points)
-      .pointColor('color')
-      .pointAltitude('altitude')
-      .pointRadius(0.4)
-      .pointLabel((d) => `
-        <div style="background:#111;border:1px solid #262626;
-          padding:8px 12px;border-radius:4px;font-family:monospace;
-          font-size:12px;color:#f0ede8;pointer-events:none">
-          <div style="color:#ffc174;font-size:10px;margin-bottom:4px">
-            ${d.threat_type?.toUpperCase() ?? '—'}
-          </div>
-          <div>${d.region || 'LATAM'}</div>
-          <div style="color:#666;font-size:11px">
-            Riesgo: <span style="color:${d.risk_score >= 80 ? '#ef4444' : '#ffc174'}">
-              ${d.risk_score}/100
-            </span>
-          </div>
-        </div>
-      `)
-      .ringsData(points.filter((p) => p.risk_score >= 80))
-      .ringColor(() => '#ef444460')
-      .ringMaxRadius(3)
-      .ringPropagationSpeed(1)
-      .ringRepeatPeriod(1500)
+    console.log('[ThreatMap] updating source:', features.length, 'points')
+    const source = map.current.getSource('incidents')
+    if (source) source.setData({ type: 'FeatureCollection', features })
   }, [incidents])
 
   return (
-    <div
-      ref={containerRef}
-      style={{ width: '100%', height: '100%', background: 'transparent' }}
-    />
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+      <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
+    </div>
   )
 }
