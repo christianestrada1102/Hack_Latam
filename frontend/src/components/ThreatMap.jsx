@@ -1,38 +1,5 @@
-import { useState, useMemo, useEffect } from 'react'
-import {
-  Map,
-  MapClusterLayer,
-  MapPopup,
-  MapControls,
-  useMap,
-} from '@/components/ui/map'
-
-const OPENMAPTILES_GLYPHS = 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf'
-
-function GlyphFix() {
-  const { map } = useMap()
-  useEffect(() => {
-    if (!map) return
-
-    const applyGlyphs = () => {
-      try {
-        const style = map.getStyle()
-        if (!style || style.glyphs === OPENMAPTILES_GLYPHS) return
-        style.glyphs = OPENMAPTILES_GLYPHS
-        map.setStyle(style)
-      } catch (_) { /* ignore */ }
-    }
-
-    if (map.isStyleLoaded()) {
-      applyGlyphs()
-    } else {
-      map.on('style.load', applyGlyphs)
-    }
-
-    return () => map.off('style.load', applyGlyphs)
-  }, [map])
-  return null
-}
+import { useState, useEffect, useRef } from 'react'
+import { Map, MapPopup, MapControls, useMap } from '@/components/ui/map'
 
 const CARTO_DARK = 'https://tiles.openfreemap.org/styles/dark'
 
@@ -66,7 +33,7 @@ function geocodeRegion(region) {
   return null
 }
 
-function buildGeoJSON(incidents) {
+function buildPoints(incidents) {
   const features = incidents
     .map((inc) => {
       const geo = geocodeRegion(inc.region)
@@ -87,6 +54,76 @@ function buildGeoJSON(incidents) {
   return { type: 'FeatureCollection', features }
 }
 
+const SOURCE_ID = 'incidents'
+const LAYER_ID  = 'incident-circles'
+
+function IncidentLayer({ incidents, onPointClick }) {
+  const { map, isLoaded } = useMap()
+  const onClickRef = useRef(onPointClick)
+  onClickRef.current = onPointClick
+
+  // Add source + layer once map is ready
+  useEffect(() => {
+    if (!isLoaded || !map) return
+
+    map.addSource(SOURCE_ID, {
+      type: 'geojson',
+      data: buildPoints(incidents),
+    })
+
+    map.addLayer({
+      id: LAYER_ID,
+      type: 'circle',
+      source: SOURCE_ID,
+      paint: {
+        'circle-radius': 8,
+        'circle-color': [
+          'case',
+          ['>=', ['get', 'risk_score'], 80], '#ef4444',
+          ['>=', ['get', 'risk_score'], 60], '#ffc174',
+          '#666666',
+        ],
+        'circle-opacity': 0.8,
+        'circle-stroke-width': 1,
+        'circle-stroke-color': '#ffffff',
+      },
+    })
+
+    const handleClick = (e) => {
+      if (!e.features?.length) return
+      const feature = e.features[0]
+      const [lng, lat] = feature.geometry.coordinates.slice()
+      onClickRef.current(feature.properties, lng, lat)
+    }
+    const setCursor   = () => { map.getCanvas().style.cursor = 'pointer' }
+    const clearCursor = () => { map.getCanvas().style.cursor = '' }
+
+    map.on('click',      LAYER_ID, handleClick)
+    map.on('mouseenter', LAYER_ID, setCursor)
+    map.on('mouseleave', LAYER_ID, clearCursor)
+
+    return () => {
+      map.off('click',      LAYER_ID, handleClick)
+      map.off('mouseenter', LAYER_ID, setCursor)
+      map.off('mouseleave', LAYER_ID, clearCursor)
+      try {
+        if (map.getLayer(LAYER_ID))   map.removeLayer(LAYER_ID)
+        if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID)
+      } catch { /* ignore */ }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, map])
+
+  // Keep source data in sync when incidents change
+  useEffect(() => {
+    if (!isLoaded || !map) return
+    const source = map.getSource(SOURCE_ID)
+    if (source) source.setData(buildPoints(incidents))
+  }, [isLoaded, map, incidents])
+
+  return null
+}
+
 function scoreColor(s) {
   if (s >= 80) return '#ef4444'
   if (s >= 60) return '#f59e0b'
@@ -96,13 +133,6 @@ function scoreColor(s) {
 export default function ThreatMap({ incidents = [] }) {
   const [popup, setPopup] = useState(null)
 
-  const geoJSON = useMemo(() => buildGeoJSON(incidents), [incidents])
-
-  const handlePointClick = (feature, coordinates) => {
-    const { id, threat_type, region, risk_score } = feature.properties
-    setPopup({ lng: coordinates[0], lat: coordinates[1], id, threat_type, region, risk_score })
-  }
-
   return (
     <Map
       theme="dark"
@@ -111,13 +141,9 @@ export default function ThreatMap({ incidents = [] }) {
       zoom={3}
       scrollZoom={false}
     >
-      <GlyphFix />
-      <MapClusterLayer
-        data={geoJSON}
-        clusterColors={['#ffc174', '#f59e0b', '#ef4444']}
-        clusterThresholds={[5, 20]}
-        pointColor="#ffc174"
-        onPointClick={handlePointClick}
+      <IncidentLayer
+        incidents={incidents}
+        onPointClick={(props, lng, lat) => setPopup({ ...props, lng, lat })}
       />
 
       {popup && (
