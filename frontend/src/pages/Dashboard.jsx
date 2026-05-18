@@ -219,6 +219,7 @@ export default function Dashboard() {
             </span>
           </div>
           <div className="flex-1 min-h-0">
+            {console.log('[Dashboard] passing to map:', allIncidents.slice(0, 3).map(i => ({ region: i.region, location: i.location, risk_score: i.risk_score })))}
             <ThreatMap incidents={allIncidents} />
           </div>
         </div>

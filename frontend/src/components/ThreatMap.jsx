@@ -27,125 +27,79 @@ function getCoords(region) {
 export default function ThreatMap({ incidents = [] }) {
   const mapContainer = useRef()
   const map          = useRef()
+  const markersRef   = useRef([])
 
+  // Initialise map once
   useEffect(() => {
     if (map.current) return
 
     map.current = new maplibregl.Map({
-      container:        mapContainer.current,
-      style:            'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-      center:           [-85, 15],
-      zoom:             3,
+      container:          mapContainer.current,
+      style:              'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+      center:             [-85, 15],
+      zoom:               3,
       attributionControl: false,
     })
 
-    map.current.on('load', () => {
-      map.current.addSource('incidents', {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] },
-      })
-
-      map.current.addLayer({
-        id:     'incident-points',
-        type:   'circle',
-        source: 'incidents',
-        paint: {
-          'circle-radius': [
-            'interpolate', ['linear'], ['get', 'risk_score'],
-            60, 6,
-            80, 9,
-            100, 12,
-          ],
-          'circle-color': [
-            'case',
-            ['>=', ['get', 'risk_score'], 80], '#ef4444',
-            '#ffc174',
-          ],
-          'circle-opacity': 0.85,
-          'circle-stroke-width': 2,
-          'circle-stroke-color': [
-            'case',
-            ['>=', ['get', 'risk_score'], 80], '#ef444440',
-            '#ffc17440',
-          ],
-        },
-      })
-
-      const popup = new maplibregl.Popup({
-        closeButton: false,
-        closeOnClick: false,
-        className: 'threat-popup',
-      })
-
-      map.current.on('mouseenter', 'incident-points', (e) => {
-        map.current.getCanvas().style.cursor = 'pointer'
-        const props = e.features[0].properties
-        popup
-          .setLngLat(e.lngLat)
-          .setHTML(`
-            <div style="background:#111;border:1px solid #262626;
-              padding:8px 12px;border-radius:4px;
-              font-family:monospace;font-size:12px;color:#f0ede8">
-              <div style="color:#ffc174;font-size:10px;margin-bottom:4px">
-                ${props.threat_type?.toUpperCase() ?? '—'}
-              </div>
-              <div>${props.region || 'LATAM'}</div>
-              <div style="color:#666;margin-top:4px">
-                Riesgo: <span style="color:${
-                  props.risk_score >= 80 ? '#ef4444' : '#ffc174'
-                }">${props.risk_score}/100</span>
-              </div>
-            </div>
-          `)
-          .addTo(map.current)
-      })
-
-      map.current.on('mouseleave', 'incident-points', () => {
-        map.current.getCanvas().style.cursor = ''
-        popup.remove()
-      })
-
-      console.log('[ThreatMap] layer added, map ready')
-    })
-
     return () => {
+      markersRef.current.forEach((m) => m.remove())
+      markersRef.current = []
       map.current?.remove()
       map.current = null
     }
   }, [])
 
+  // Re-render markers whenever incidents change
   useEffect(() => {
     if (!map.current) return
 
-    const updatePoints = () => {
-      const features = incidents
-        .map((inc) => {
-          const region = inc.location || inc.region
-          const coords = getCoords(region)
-          if (!coords) return null
-          return {
-            type: 'Feature',
-            geometry: { type: 'Point', coordinates: coords },
-            properties: {
-              risk_score:  inc.risk_score,
-              threat_type: inc.threat_type,
-              region,
-            },
-          }
-        })
-        .filter(Boolean)
+    // Clear existing markers
+    markersRef.current.forEach((m) => m.remove())
+    markersRef.current = []
 
-      console.log('[ThreatMap] updating', features.length, 'points')
+    console.log('[ThreatMap] updating', incidents.length, 'incidents')
 
-      const source = map.current.getSource('incidents')
-      if (source) source.setData({ type: 'FeatureCollection', features })
-    }
+    incidents.forEach((inc) => {
+      const region = inc.location || inc.region
+      const coords = getCoords(region)
+      if (!coords) return
 
-    if (map.current.isStyleLoaded()) {
-      updatePoints()
-    } else {
-      map.current.once('load', updatePoints)
-    }
+      const el = document.createElement('div')
+      el.style.cssText = `
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: ${inc.risk_score >= 80 ? '#ef4444' : '#ffc174'};
+        border: 2px solid ${inc.risk_score >= 80 ? '#ef444480' : '#ffc17480'};
+        cursor: pointer;
+      `
+
+      const popup = new maplibregl.Popup({ offset: 10, className: 'threat-popup' })
+        .setHTML(`
+          <div style="background:#111;border:1px solid #262626;
+            padding:8px 12px;border-radius:4px;
+            font-family:monospace;font-size:12px;color:#f0ede8">
+            <div style="color:#ffc174;font-size:10px;margin-bottom:4px">
+              ${inc.threat_type?.toUpperCase() ?? '—'}
+            </div>
+            <div>${region || 'LATAM'}</div>
+            <div style="color:#666;margin-top:4px">
+              Riesgo: <span style="color:${
+                inc.risk_score >= 80 ? '#ef4444' : '#ffc174'
+              }">${inc.risk_score}/100</span>
+            </div>
+          </div>
+        `)
+
+      const marker = new maplibregl.Marker({ element: el })
+        .setLngLat(coords)
+        .setPopup(popup)
+        .addTo(map.current)
+
+      markersRef.current.push(marker)
+    })
+
+    console.log('[ThreatMap] placed', markersRef.current.length, 'markers')
   }, [incidents])
 
   return (
