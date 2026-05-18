@@ -247,13 +247,15 @@ async def analyze(
                 vt_url = domain if domain.startswith(("http://", "https://")) else f"https://{domain}"
                 vt_result = await vt_svc.check_url(vt_url)
 
-        # IP region takes priority; AI detection is the fallback (covers localhost/dev)
+        # AI-detected region (derived from content — phone numbers, city mentions, etc.)
+        # is the primary signal. IP geolocation is secondary and often wrong for VPNs.
+        ai_region: str | None = analysis.get("region")
         ip_region: str | None = None
         if geo.get("city") and geo.get("country"):
             ip_region = f"{geo['city']}, {geo['country']}"
         elif geo.get("country"):
             ip_region = geo["country"]
-        final_region = ip_region or analysis.get("region")
+        final_region = ai_region or ip_region or None
 
     except HTTPException:
         raise
