@@ -1,6 +1,7 @@
 import asyncio
 import json
 import re
+import uuid
 from typing import Optional
 
 import httpx
@@ -109,9 +110,10 @@ async def analyze(
 
     All available text is combined before analysis.
     """
-    text_parts:  list[str] = []
-    embed_text:  str       = ""
-    checked_url: str | None = None
+    text_parts:      list[str] = []
+    embed_text:      str       = ""
+    checked_url:     str | None = None
+    _image_raw_text: str | None = None
 
     try:
         # ── Collect extraction coroutines (image + audio run in parallel) ──────
@@ -157,6 +159,8 @@ async def analyze(
                         status_code=422,
                         detail="No se pudo transcribir el audio. Verifica que el archivo sea MP3, WAV o M4A y vuelve a intentarlo.",
                     )
+                if label == "image":
+                    _image_raw_text = result_str
                 prefix = "[Contenido de imagen]" if label == "image" else "[Transcripción de audio]"
                 text_parts.append(f"{prefix}\n{result_str}")
 
@@ -186,6 +190,35 @@ async def analyze(
 
         embed_text = "\n\n---\n\n".join(text_parts)
         print(f"[analyze] embed_text parts={len(text_parts)}, total chars={len(embed_text)}, preview: {repr(embed_text[:300])}")
+
+        # ── Early return: image with no meaningful text and no other input ────────────
+        if (
+            _image_raw_text is not None
+            and not (text and text.strip())
+            and not (url and url.strip())
+            and audio is None
+        ):
+            clean = _image_raw_text.strip()
+            if not clean or len(clean) < 20:
+                return ThreatReport(
+                    incident_id         =str(uuid.uuid4()),
+                    risk_score          =0,
+                    threat_type         ="unknown",
+                    emotional_pressure  ="low",
+                    urgency_score       =0,
+                    coercion_score      =0,
+                    authority_score     =0,
+                    region              =None,
+                    entities            ={"phones": [], "domains": [], "keywords": []},
+                    recommended_actions =["No se detectaron indicadores de fraude en esta imagen."],
+                    panic_interrupt     =False,
+                    manipulation_summary=(
+                        "La imagen analizada no contiene texto o indicadores asociados con fraudes digitales. "
+                        "Parece ser una imagen regular sin contenido sospechoso."
+                    ),
+                    similar_count       =0,
+                    analyzed_content    =_image_raw_text or "No se encontró texto en la imagen.",
+                )
 
         # ── Threat analysis + emotional scoring + VirusTotal + geolocation in parallel ─
         geo_coro = get_approximate_location(request)

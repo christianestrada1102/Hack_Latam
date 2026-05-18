@@ -977,6 +977,16 @@ export default function ThreatScanner() {
               Intentar de nuevo
             </button>
           </div>
+        ) : display.score === 0 && display.category === 'unknown' ? (
+          <div className="card-base p-5 flex flex-col items-center gap-3 text-center">
+            <div style={{ fontSize: 36, lineHeight: 1, color: '#22c55e' }}>✓</div>
+            <p className="text-[14px] font-semibold font-mono" style={{ color: '#22c55e' }}>
+              Contenido seguro
+            </p>
+            <p className="text-[12px] leading-relaxed" style={{ color: '#a3a3a3' }}>
+              No se detectaron indicadores de fraude, phishing o manipulación en este contenido.
+            </p>
+          </div>
         ) : (
           <>
             {/* Score + category */}

@@ -178,7 +178,11 @@ async def analyze_text_threat(text: str) -> dict:
             "Write ALL text fields (keywords, recommended_actions, manipulation_summary) in Spanish.\n"
             "keywords must be FULL SENTENCES describing each manipulation tactic — not single words.\n"
             "recommended_actions must be COMPLETE SENTENCES with an explanation of WHY each step matters.\n"
-            "manipulation_summary must be ONE PARAGRAPH explaining what psychological tactics are used and why they are dangerous.\n\n"
+            "manipulation_summary must be ONE PARAGRAPH explaining what psychological tactics are used and why they are dangerous.\n"
+            "IMPORTANT: If the content does NOT contain ANY indicators of phishing, scam, vishing, or fraud, "
+            "return risk_score: 0, threat_type: 'unknown', emotional_pressure: 'low', all scores 0, "
+            "recommended_actions: ['No se detectaron indicadores de fraude en el contenido analizado.'], "
+            "and manipulation_summary: null. DO NOT invent threats that are not present.\n\n"
             "Return ONLY valid JSON — no markdown, no extra text:\n"
             + _ANALYSIS_SCHEMA
             + "\n\nContent to analyze:\n"
