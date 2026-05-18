@@ -387,9 +387,27 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
     <strong>hack@latam 2026 · Track DEF/ACC</strong>
   </p>
   <p>
-    <a href="https://haven-lat.codebynas.dev">haven-lat.codebynas.dev</a> ·
-    <a href="https://github.com/christianestrada1102/Hack_Latam">GitHub</a> ·
-    <a href="https://linkedin.com/in/christianestrada">LinkedIn</a>
+    <a href="https://haven-lat.codebynas.dev">haven-lat.codebynas.dev</a>
+
+      <a href="https://github.com/christianestrada1102/Hack_Latam">
+
+    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" width="14" style="vertical-align:middle;" />
+
+    GitHub
+
+  </a>
+
+  ·
+
+  <a href="https://www.linkedin.com/in/christian-estrada-a59130386?utm_source=share_via&utm_content=profile&utm_medium=member_ios">
+
+    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/linkedin/linkedin-original.svg" width="14" style="vertical-align:middle;" />
+
+    LinkedIn
+
+  </a>
+  
+ 
   </p>
   <p>
     <sub>© 2026 CodeByNas · MIT License</sub>
