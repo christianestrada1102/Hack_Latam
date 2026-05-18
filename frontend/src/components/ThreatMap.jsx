@@ -52,8 +52,18 @@ const GEOCODE = {
 
 function geocodeRegion(region) {
   if (!region) return null
-  const city = region.split(',')[0].trim().toLowerCase()
-  return GEOCODE[city] ?? null
+  const r = region.toLowerCase()
+  if (r.includes('chihuahua'))                             return GEOCODE['chihuahua']
+  if (r.includes('juárez') || r.includes('juarez'))       return GEOCODE['juárez']
+  if (r.includes('cdmx') || r.includes('ciudad de m'))    return GEOCODE['cdmx']
+  if (r.includes('monterrey'))                             return GEOCODE['monterrey']
+  if (r.includes('guadalajara'))                           return GEOCODE['guadalajara']
+  if (r.includes('bogotá') || r.includes('bogota'))       return GEOCODE['bogotá']
+  if (r.includes('lima'))                                  return GEOCODE['lima']
+  if (r.includes('buenos aires'))                          return GEOCODE['buenos aires']
+  if (r.includes('são paulo') || r.includes('sao paulo')) return GEOCODE['são paulo']
+  if (r.includes('méxico') || r.includes('mexico'))       return GEOCODE['mexico']
+  return null
 }
 
 function buildGeoJSON(incidents) {

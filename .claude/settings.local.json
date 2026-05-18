@@ -20,7 +20,8 @@
       "Bash(node *)",
       "Bash(npm list *)",
       "Bash(powershell *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ]
   }
 }
