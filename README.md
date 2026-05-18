@@ -362,7 +362,7 @@ HAVEN fue diseñado con base en casos documentados en Chihuahua y LATAM:
 
 ```
 MIT License
-Copyright (c) 2025 Christian Estrada
+Copyright (c) 2026 Christian Estrada
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -384,7 +384,7 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
 <div align="center">
   <p>
     Construido con IA para proteger a LATAM<br>
-    <strong>hack@latam 2025 · Track DEF/ACC</strong>
+    <strong>hack@latam 2026 · Track DEF/ACC</strong>
   </p>
   <p>
     <a href="https://haven-lat.codebynas.dev">haven-lat.codebynas.dev</a> ·
@@ -392,6 +392,6 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
     <a href="https://linkedin.com/in/christianestrada">LinkedIn</a>
   </p>
   <p>
-    <sub>© 2025 Christian Estrada · MIT License</sub>
+    <sub>© 2026 CodeByNas · MIT License</sub>
   </p>
 </div>
